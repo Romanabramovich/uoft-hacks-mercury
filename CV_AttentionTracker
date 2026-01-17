@@ -1,0 +1,220 @@
+import tkinter as tk
+from tkinter import ttk, font
+import threading
+import time
+import random
+from screen_tracker import ScreenTimeTracker
+
+class AdaptiveLearningApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Adaptive Learning Engine AI")
+        self.root.geometry("1000x700")
+        self.root.configure(bg="#1e1e1e")
+
+        # --- Data Model ---
+        self.current_format = "text"  # 'text' or 'visual'
+        self.adaptation_cooldown = 0
+        self.is_running = True
+
+        # Initialize the Sensor (The ScreenTracker)
+        self.tracker = ScreenTimeTracker()
+        
+        # --- UI Layout ---
+        self.setup_ui()
+        
+        # Start the Sensor in a background thread
+        self.sensor_thread = threading.Thread(target=self.run_sensor_loop, daemon=True)
+        self.sensor_thread.start()
+
+        # Start the Control Loop (The "AI" Brain)
+        self.root.after(1000, self.control_loop)
+
+    def setup_ui(self):
+        # Header
+        header_frame = tk.Frame(self.root, bg="#2d2d2d", height=80)
+        header_frame.pack(fill="x", side="top")
+        
+        title = tk.Label(header_frame, text="Neuro-Adaptive Learning Module", 
+                        bg="#2d2d2d", fg="white", font=("Helvetica", 24, "bold"))
+        title.pack(pady=20)
+
+        # Main Content Area (Split: Left=Lesson, Right=Diagnostics)
+        main_pane = tk.PanedWindow(self.root, orient="horizontal", bg="#1e1e1e")
+        main_pane.pack(fill="both", expand=True, padx=20, pady=20)
+
+        # 1. Lesson Viewer (The "Student" View)
+        self.lesson_frame = tk.Frame(main_pane, bg="white", highlightthickness=2, highlightbackground="#444")
+        main_pane.add(self.lesson_frame, minsize=600)
+        
+        # We will dynamically pack content into lesson_frame
+
+        # 2. System Diagnostics (The "Teacher/AI" View)
+        diag_frame = tk.Frame(main_pane, bg="#252526", width=300)
+        main_pane.add(diag_frame, minsize=300)
+
+        # Diagnostics Labels
+        tk.Label(diag_frame, text="SYSTEM DIAGNOSTICS", bg="#252526", fg="#007acc", font=("Consolas", 14, "bold")).pack(pady=(20, 10))
+        
+        self.lbl_status = tk.Label(diag_frame, text="SENSOR: ACTIVE", bg="#252526", fg="#00ff00", font=("Consolas", 12))
+        self.lbl_status.pack(pady=5)
+
+        self.lbl_attention = tk.Label(diag_frame, text="ATTENTION: 100.0%", bg="#252526", fg="white", font=("Consolas", 16, "bold"))
+        self.lbl_attention.pack(pady=20)
+
+        self.lbl_mode = tk.Label(diag_frame, text="MODE: TEXT LEARNING", bg="#252526", fg="#aaaaaa", font=("Consolas", 12))
+        self.lbl_mode.pack(pady=5)
+
+        self.log_text = tk.Text(diag_frame, height=15, bg="#1e1e1e", fg="#cccccc", font=("Consolas", 9), state="disabled")
+        self.log_text.pack(fill="x", padx=10, pady=20)
+
+        # Initial Content
+        self.render_text_content()
+
+    def log(self, message):
+        """Add message to diagnostic log."""
+        self.log_text.configure(state="normal")
+        timestamp = time.strftime("%H:%M:%S")
+        self.log_text.insert("1.0", f"[{timestamp}] {message}\n")
+        self.log_text.configure(state="disabled")
+
+    def render_text_content(self):
+        """Render the 'Boring' Text Version."""
+        for widget in self.lesson_frame.winfo_children():
+            widget.destroy()
+        
+        self.lesson_frame.configure(bg="white")
+        
+        # Title
+        tk.Label(self.lesson_frame, text="The Pythagorean Theorem", bg="white", fg="black", 
+                font=("Georgia", 28, "bold")).pack(pady=(50, 30))
+        
+        # Dense Text Block
+        text_content = (
+            "In mathematics, the Pythagorean theorem, also known as Pythagoras' theorem, "
+            "is a fundamental relation in Euclidean geometry among the three sides of a right triangle. "
+            "It states that the area of the square whose side is the hypotenuse (the side opposite the right angle) "
+            "is equal to the sum of the areas of the squares on the other two sides.\n\n"
+            "This theorem can be written as an equation relating the lengths of the sides a, b and c, "
+            "often called the Pythagorean equation: a² + b² = c².\n\n"
+            "The theorem is named after the Greek philosopher Pythagoras, born around 570 BC. "
+            "The theorem has been proven numerous times by many different methods – possibly the most for any mathematical theorem. "
+            "The proofs are diverse, including both geometric proofs and algebraic proofs, with some dating back thousands of years."
+        )
+        
+        msg = tk.Message(self.lesson_frame, text=text_content, bg="white", fg="#333", 
+                        font=("Times New Roman", 14), width=500, justify="left")
+        msg.pack(pady=20)
+        
+        self.current_format = "text"
+        self.lbl_mode.config(text="MODE: TEXT (Standard)", fg="#aaaaaa")
+        self.log("Loaded: Standard Text Module")
+
+    def render_visual_content(self):
+        """Render the 'Engaging' Visual Version."""
+        for widget in self.lesson_frame.winfo_children():
+            widget.destroy()
+            
+        self.lesson_frame.configure(bg="#f0f8ff") # Light AliceBlue background
+        
+        # Title
+        tk.Label(self.lesson_frame, text="Let's Visualize It!", bg="#f0f8ff", fg="#0066cc", 
+                font=("Helvetica", 32, "bold")).pack(pady=(40, 20))
+
+        # Canvas for Diagram
+        canvas = tk.Canvas(self.lesson_frame, width=400, height=300, bg="#f0f8ff", highlightthickness=0)
+        canvas.pack(pady=20)
+        
+        # Draw Triangle
+        # Points: (50, 250) -> (350, 250) -> (50, 50)
+        canvas.create_polygon(50, 250, 350, 250, 50, 50, fill="#ffcc00", outline="black", width=3)
+        
+        # Labels
+        canvas.create_text(30, 150, text="a", font=("Helvetica", 20, "bold"), fill="red")
+        canvas.create_text(200, 270, text="b", font=("Helvetica", 20, "bold"), fill="blue")
+        canvas.create_text(220, 140, text="c", font=("Helvetica", 20, "bold"), fill="green")
+        
+        # The Formula
+        f_frame = tk.Frame(self.lesson_frame, bg="#f0f8ff")
+        f_frame.pack(pady=20)
+        
+        tk.Label(f_frame, text="a²", fg="red", bg="#f0f8ff", font=("Helvetica", 40, "bold")).pack(side="left")
+        tk.Label(f_frame, text=" + ", fg="black", bg="#f0f8ff", font=("Helvetica", 40)).pack(side="left")
+        tk.Label(f_frame, text="b²", fg="blue", bg="#f0f8ff", font=("Helvetica", 40, "bold")).pack(side="left")
+        tk.Label(f_frame, text=" = ", fg="black", bg="#f0f8ff", font=("Helvetica", 40)).pack(side="left")
+        tk.Label(f_frame, text="c²", fg="green", bg="#f0f8ff", font=("Helvetica", 40, "bold")).pack(side="left")
+
+        self.current_format = "visual"
+        self.lbl_mode.config(text="MODE: VISUAL (Adaptive)", fg="#0066cc")
+        self.log("ADAPTATION: Switched to Visual Mode")
+
+    def run_sensor_loop(self):
+        """Run the OpenCV tracker in this background thread."""
+        # We start the tracker. Since tracker.run() is a blocking loop,
+        # we strictly shouldn't modify the GUI from here.
+        # The tracker implementation uses `cv2.imshow` which must form its own window loop.
+        # This is fine; the "Sensor" will pop up as its own window (The "Eye").
+        self.tracker.run()
+
+    def control_loop(self):
+        """The AI Brain. Polls sensor and decides on content."""
+        if not self.is_running:
+            return
+
+        # 1. Get Telemetry from Sensor
+        # We need to access the tracker's internal state safely
+        # In a production app we'd use a queue, but direct read is okay for demo
+        try:
+            total_session, focus_time, attention_span = self.tracker.get_attention_metrics()
+            is_looking = self.tracker.is_looking
+        except Exception:
+            # Tracker might not be ready
+            total_session, attention_span = 1, 1.0
+            is_looking = True
+
+        # 2. Update Diagnostics Panel
+        percent = attention_span * 100
+        self.lbl_attention.config(text=f"ATTENTION: {percent:.1f}%")
+        
+        if is_looking:
+            self.lbl_status.config(text="STATUS: FOCUSED", fg="#00ff00")
+        else:
+            self.lbl_status.config(text="STATUS: LOOKING AWAY", fg="#ff0000")
+
+        # 3. Decision Logic (The Adaptive Engine)
+        if self.adaptation_cooldown > 0:
+            self.adaptation_cooldown -= 1
+        else:
+            # ADAPTATION TRIGGER:
+            # If attention drops below 50% AND we have established a baseline session (> 3s)
+            if percent < 50.0 and total_session > 3:
+                print(f"[DEBUG] Triggering Switch! Attention: {percent}%")
+                
+                self.log(f"ALERT: Low Attention ({percent:.1f}%)")
+                
+                if self.current_format == "text":
+                    self.log("DECISION: Student struggling with Text.")
+                    self.log("ACTION: Adapting to Visual Mode.")
+                    self.render_visual_content()
+                else:
+                    # Currently Visual, but still low attention -> Switch back to Text (or try something else)
+                    self.log("DECISION: Student struggling with Visuals.")
+                    self.log("ACTION: Adapting back to Text Mode.")
+                    self.render_text_content()
+                
+                self.adaptation_cooldown = 10  # Don't switch again for 10 seconds
+
+        # Loop
+        self.root.after(1000, self.control_loop)
+
+    def on_close(self):
+        self.is_running = False
+        # The tracker thread is daemon, so it will die when main dies
+        # But we should try to close 'q' or just kill the app
+        self.root.destroy()
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = AdaptiveLearningApp(root)
+    root.protocol("WM_DELETE_WINDOW", app.on_close)
+    root.mainloop()
