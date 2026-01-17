@@ -1,1 +1,8 @@
 backend/.env
+*.svg
+*.tex
+*.mp4
+*.jpg
+backend/app/__pycache__
+backend/generated_animations
+
