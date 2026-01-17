@@ -1,8 +1,8 @@
-import { User, Course, Chapters, Slide, LearningEvent } from "./types";
+import { User, Course, Chapter, Slide, LearningEvent } from "./types";
 
 const MOCK_USER: User = {
     id: "student_123",
-    name: "Amy Learner",
+    name: "Amy",
     role: "student",
     profile: {
         optimalFormat: "text",
@@ -11,6 +11,14 @@ const MOCK_USER: User = {
         bestTimeOfDay: "evening",
         processingStyle: "bottom_up",
         confidenceScore: 0.87,
+    },
+    preferences: {
+        lightMode: false,
+        dyslexicFont: false,
+        textSize: "medium",
+        autoAdapt: true,
+        showConfidence: true,
+        pace: "moderate",
     },
 };
 
@@ -37,7 +45,8 @@ const MOCK_SLIDES: Slide[] = [
                 durationEstimate: 60,
             }
         }
-    },
+    }
+    ,
     {
         id: "course_calc_101",
         slideid: "slide_2",
@@ -66,28 +75,51 @@ const MOCK_SLIDES: Slide[] = [
                 content: "<div class='p-4 bg-muted rounded-lg text-center'>Visual representation of power rule moving exponent to front</div>"
             }
         }
+    },
+    {
+        id: "slide_3",
+        title: "Knowledge Check: Power Rule",
+        variants: {
+            text: { // Using text key as default wrapper, but type will be 'quiz'
+                type: "quiz",
+                content: "Quiz Content",
+                quizData: {
+                    questionId: "q_power_rule_1",
+                    question: "What is the derivative of f(x) = x^3?",
+                    options: [
+                        { id: "opt_1", text: "3x" },
+                        { id: "opt_2", text: "3x^2" },
+                        { id: "opt_3", text: "x^2" },
+                        { id: "opt_4", text: "2x^3" }
+                    ],
+                    correctOptionId: "opt_2"
+                }
+            }
+        }
     }
 ];
 
-const MOCK_CHAPTERS: Chapters[] = [
+const MOCK_CHAPTERS: Chapter[] = [
     {
-        id: "chapter_1",
-        title: "Derivatives Basics",
-        slides: MOCK_SLIDES.filter(slide => slide.chapterId === "chapter_1"), // Populate slides for this chapter
+        id: "chap_1",
+        title: "Chapter 1: Foundations of Derivatives",
+        slides: [MOCK_SLIDES[0]]
     },
     {
-        id: "chapter_2",
-        title: "Techniques of Differentiation",
-        slides: MOCK_SLIDES.filter(slide => slide.chapterId === "chapter_2"), // Populate slides for this chapter
+        id: "chap_2",
+        title: "Chapter 2: Derivative Rules",
+        slides: [MOCK_SLIDES[1], MOCK_SLIDES[2]]
     }
 ];
+
 
 const MOCK_COURSE: Course = {
     id: "course_calc_101",
     title: "Calculus I: Limits & Derivatives",
     instructorId: "prof_smith",
-    chapters: MOCK_CHAPTERS, // Use chapters instead of slides
+    chapters: MOCK_CHAPTERS,
 };
+
 
 const MOCK_COURSES: Course[] = [
     MOCK_COURSE,
@@ -95,13 +127,13 @@ const MOCK_COURSES: Course[] = [
         id: "course_phys_101",
         title: "Physics 101: Mechanics",
         instructorId: "prof_doe",
-        chapters: [], // Empty chapters for now
+        chapters: [], // Empty for now
     },
     {
         id: "course_hist_200",
         title: "World History: 20th Century",
         instructorId: "prof_jones",
-        chapters: [], // Empty chapters for now
+        chapters: [],
     }
 ];
 
@@ -124,5 +156,12 @@ export class MockService {
     async logEvent(event: LearningEvent): Promise<void> {
         console.log("[MockService] Event Logged:", event);
         await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+
+    async updatePreferences(userId: string, preferences: Partial<User['preferences']>): Promise<void> {
+        if (MOCK_USER.id === userId && MOCK_USER.preferences) {
+            MOCK_USER.preferences = { ...MOCK_USER.preferences, ...preferences };
+        }
+        await new Promise((resolve) => setTimeout(resolve, 500));
     }
 }

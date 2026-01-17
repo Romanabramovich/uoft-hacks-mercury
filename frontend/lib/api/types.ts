@@ -1,7 +1,7 @@
-export type LearningStyle = 
-  | "visual" 
-  | "text" 
-  | "kinesthetic" 
+export type LearningStyle =
+  | "visual"
+  | "text"
+  | "kinesthetic"
   | "audio";
 
 export interface LearningProfile {
@@ -13,18 +13,35 @@ export interface LearningProfile {
   confidenceScore: number;
 }
 
+export interface UserPreferences {
+  lightMode: boolean;
+  dyslexicFont: boolean;
+  textSize: "small" | "medium" | "large" | "xl";
+  autoAdapt: boolean;
+  showConfidence: boolean;
+  pace: "slow" | "moderate" | "fast";
+}
+
 export interface User {
   id: string;
   name: string;
   role: "student" | "professor";
   profile?: LearningProfile;
+  preferences?: UserPreferences;
 }
 
 export interface SlideVariant {
-  type: LearningStyle | "interactive" | "example";
-  content: string; // HTML or Markdown content
+  type: "text" | "visual" | "example" | "quiz"; // Added quiz
+  content: string; // HTML content or Question JSON
   mediaUrl?: string; // For images/videos
   durationEstimate?: number; // seconds
+  // For quiz type
+  quizData?: {
+    questionId: string;
+    question: string;
+    options: { id: string; text: string }[];
+    correctOptionId: string;
+  };
 }
 
 export interface Slide {
@@ -35,7 +52,7 @@ export interface Slide {
   variants: Record<string, SlideVariant>; // key is the variant type or specific ID
 }
 
-export interface Chapters {
+export interface Chapter {
   id: string;
   title: string;
   slides: Slide[];
@@ -45,7 +62,7 @@ export interface Course {
   id: string;
   title: string;
   instructorId: string;
-  chapters: Chapters[]; // Renamed from slides for clarity
+  chapters: Chapter[];
 }
 
 export interface LearningEvent {

@@ -1,7 +1,9 @@
 "use client";
 
+import { ThemeProvider } from "@/components/theme-provider";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { EventTrackerProvider } from "@/components/providers/event-tracker";
 
 export default function DashboardLayout({
     children,
@@ -9,16 +11,25 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     return (
-        <div className="h-full relative bg-background">
-            <div className="hidden h-full md:flex md:w-72 md:flex-col md:fixed md:inset-y-0 z-[80] bg-gray-900">
-                <Sidebar />
-            </div>
-            <div className="md:pl-72 h-full flex flex-col">
-                <Header />
-                <main className="flex-1 p-8 overflow-y-auto">
-                    {children}
-                </main>
-            </div>
-        </div>
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem
+            disableTransitionOnChange
+        >
+            <EventTrackerProvider>
+                <div className="flex h-screen bg-[#0b0f19]">
+                    <div className="w-64 hidden md:block fixed inset-y-0 z-50">
+                        <Sidebar />
+                    </div>
+                    <div className="md:pl-64 flex flex-col flex-1 w-full">
+                        <Header />
+                        <main className="flex-1 overflow-auto p-8">
+                            {children}
+                        </main>
+                    </div>
+                </div>
+            </EventTrackerProvider>
+        </ThemeProvider>
     );
 }
