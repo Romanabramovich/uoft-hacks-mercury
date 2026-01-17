@@ -53,15 +53,15 @@ export function SlideFrame({ chapters, courseTitle, onExit }: SlideFrameProps) {
     // );
 
 
-    useEffect(() => {
-        if (!currentSlide) {
-            setActiveVariant(null);
-            return;
-        }
-        // Reset variant when slide changes
-        const vars = currentSlide.variants;
-        setActiveVariant(vars.text || Object.values(vars)[0]);
-    }, [currentSlide]);
+    // useEffect(() => {
+    //     if (!currentSlide) {
+    //         setActiveVariant(null);
+    //         return;
+    //     }
+    //     // Reset variant when slide changes
+    //     const vars = currentSlide.variants;
+    //     setActiveVariant(vars.text || Object.values(vars)[0]);
+    // }, [currentSlide]);
 
     useEffect(() => { // ayushi's implementation
         const chapter = chapters[currentChapterIndex];
