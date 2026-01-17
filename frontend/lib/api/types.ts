@@ -29,15 +29,23 @@ export interface SlideVariant {
 
 export interface Slide {
   id: string;
+  slideid: string;
+  chapterId: string; // Added to associate slides with chapters
   title: string;
   variants: Record<string, SlideVariant>; // key is the variant type or specific ID
+}
+
+export interface Chapters {
+  id: string;
+  title: string;
+  slides: Slide[];
 }
 
 export interface Course {
   id: string;
   title: string;
   instructorId: string;
-  slides: Slide[];
+  chapters: Chapters[]; // Renamed from slides for clarity
 }
 
 export interface LearningEvent {

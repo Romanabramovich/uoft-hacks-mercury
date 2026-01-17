@@ -1,4 +1,4 @@
-import { User, Course, Slide, LearningEvent } from "./types";
+import { User, Course, Chapters, Slide, LearningEvent } from "./types";
 
 const MOCK_USER: User = {
     id: "student_123",
@@ -16,7 +16,9 @@ const MOCK_USER: User = {
 
 const MOCK_SLIDES: Slide[] = [
     {
-        id: "slide_1",
+        id: "course_calc_101",
+        slideid: "slide_1",
+        chapterId: "chapter_1",
         title: "Introduction to Derivatives",
         variants: {
             visual: {
@@ -37,7 +39,22 @@ const MOCK_SLIDES: Slide[] = [
         }
     },
     {
-        id: "slide_2",
+        id: "course_calc_101",
+        slideid: "slide_2",
+        chapterId: "chapter_1", // Another slide for chapter_1
+        title: "Introduction to Derivatives",
+        variants: {
+            text: {
+                type: "text",
+                content: "<div class='prose dark:prose-invert'><h3>Additional Concepts</h3><p>Derivatives can be used to find rates of change in various contexts.</p></div>",
+                durationEstimate: 40,
+            }
+        }
+    },
+    {
+        id: "course_calc_101",
+        slideid: "slide_1",
+        chapterId: "chapter_2", // Slide for chapter_2
         title: "The Power Rule",
         variants: {
             text: {
@@ -52,11 +69,24 @@ const MOCK_SLIDES: Slide[] = [
     }
 ];
 
+const MOCK_CHAPTERS: Chapters[] = [
+    {
+        id: "chapter_1",
+        title: "Derivatives Basics",
+        slides: MOCK_SLIDES.filter(slide => slide.chapterId === "chapter_1"), // Populate slides for this chapter
+    },
+    {
+        id: "chapter_2",
+        title: "Techniques of Differentiation",
+        slides: MOCK_SLIDES.filter(slide => slide.chapterId === "chapter_2"), // Populate slides for this chapter
+    }
+];
+
 const MOCK_COURSE: Course = {
     id: "course_calc_101",
     title: "Calculus I: Limits & Derivatives",
     instructorId: "prof_smith",
-    slides: MOCK_SLIDES,
+    chapters: MOCK_CHAPTERS, // Use chapters instead of slides
 };
 
 const MOCK_COURSES: Course[] = [
@@ -65,13 +95,13 @@ const MOCK_COURSES: Course[] = [
         id: "course_phys_101",
         title: "Physics 101: Mechanics",
         instructorId: "prof_doe",
-        slides: [], // Empty for now
+        chapters: [], // Empty chapters for now
     },
     {
         id: "course_hist_200",
         title: "World History: 20th Century",
         instructorId: "prof_jones",
-        slides: [],
+        chapters: [], // Empty chapters for now
     }
 ];
 

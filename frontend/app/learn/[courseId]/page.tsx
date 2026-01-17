@@ -33,7 +33,7 @@ export default function LearnPage() {
 
     return (
         <SlideFrame
-            slides={course.slides}
+            chapters={course.chapters}
             courseTitle={course.title}
             onExit={() => router.push("/dashboard")}
         />
