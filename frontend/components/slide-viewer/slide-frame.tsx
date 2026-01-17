@@ -81,15 +81,15 @@ export function SlideFrame({ chapters, courseTitle, onExit }: SlideFrameProps) {
     };
 
     // Simulation of adaptation trigger
-    const triggerAdaptation = (type: LearningStyle | "text" | "example") => {
-        if (type === "visual" || type === "text") {
-            setUserPreference(type);
-        }
+    // const triggerAdaptation = (type: LearningStyle | "text" | "example") => {
+    //     if (type === "visual" || type === "text") {
+    //         setUserPreference(type);
+    //     }
         
-        if (currentSlide?.variants[type]) {
-            setActiveVariant(currentSlide.variants[type]);
-        }
-    };
+    //     if (currentSlide?.variants[type]) {
+    //         setActiveVariant(currentSlide.variants[type]);
+    //     }
+    // };
 
     const progress = slides.length > 0 ? ((currentIndex + 1) / slides.length) * 100 : 0;
 
@@ -130,35 +130,6 @@ export function SlideFrame({ chapters, courseTitle, onExit }: SlideFrameProps) {
                             ))}
                         </SelectContent>
                     </Select>
-
-                    <div className="hidden md:flex gap-2">
-                        <Button 
-                            variant={activeVariant.type === "visual" ? "default" : "outline"} 
-                            size="sm" 
-                            onClick={() => triggerAdaptation("visual")} 
-                            className="text-xs border-zinc-700"
-                        >
-                            Visual
-                        </Button>
-                        <Button 
-                            variant={activeVariant.type === "text" ? "default" : "outline"} 
-                            size="sm" 
-                            onClick={() => triggerAdaptation("text")} 
-                            className="text-xs border-zinc-700"
-                        >
-                            Text
-                        </Button>
-                        
-                        <Button 
-                            variant={activeVariant.type === "example" ? "default" : "outline"} 
-                            size="sm" 
-                            onClick={() => triggerAdaptation("example")} 
-                            className="text-xs border-zinc-700"
-                        >
-                            Example
-                        </Button>
-                    </div>
-                    <Progress value={progress} className="w-32 h-2 bg-zinc-800" />
                 </div>
             </div>
 
