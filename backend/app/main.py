@@ -223,7 +223,7 @@ async def create_event(event: Event):
         raise HTTPException(status_code=500, detail=f"Error logging event: {str(e)}")
 
 
-# INTERVENTION SYSTEM: Session State Monitoring
+# INTERVENTION SYSTEM
 active_sessions = {}
 
 @app.post("/api/session/start")
