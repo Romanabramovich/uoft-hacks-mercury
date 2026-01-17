@@ -1,7 +1,7 @@
 import os
+import certifi
 from dotenv import load_dotenv
 from urllib.parse import quote_plus
-import certifi
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 
@@ -37,6 +37,6 @@ if __name__ == "__main__":
     print("Getting database...")
     database = get_database()
 
-    if database:
+    if database is not None:
         collection = database["test_collection"]
         print(f"Accessed collection: {collection.name}")
