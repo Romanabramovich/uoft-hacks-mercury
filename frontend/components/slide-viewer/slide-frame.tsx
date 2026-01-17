@@ -8,6 +8,7 @@ import { Chapter, Slide, SlideVariant } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { DynamicContent } from "@/components/slide-viewer/dynamic-content";
+import { useFocusTracking } from "@/hooks/analytics/useFocusTracking";
 
 interface SlideFrameProps {
     chapters: Chapter[];
@@ -16,6 +17,9 @@ interface SlideFrameProps {
 }
 
 export function SlideFrame({ chapters, courseTitle, onExit }: SlideFrameProps) {
+    // Initialize analytics
+    useFocusTracking();
+
     const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
     const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
     const [showConfetti, setShowConfetti] = useState(false);

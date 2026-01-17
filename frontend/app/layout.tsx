@@ -12,6 +12,7 @@ export const metadata: Metadata = {
 };
 
 import { EventTrackerProvider } from "@/hooks/analytics/useEventTracker";
+import { SessionProvider } from "@/components/providers/session-provider";
 
 // ... imports
 
@@ -30,9 +31,11 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <SettingsProvider>
-            <EventTrackerProvider>
-              {children}
-            </EventTrackerProvider>
+            <SessionProvider>
+              <EventTrackerProvider>
+                {children}
+              </EventTrackerProvider>
+            </SessionProvider>
           </SettingsProvider>
         </ThemeProvider>
       </body>
