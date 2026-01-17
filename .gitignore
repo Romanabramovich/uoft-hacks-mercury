@@ -3,6 +3,8 @@ backend/.env
 *.tex
 *.mp4
 *.jpg
+*.pyc
 backend/app/__pycache__
 backend/generated_animations
+backend/media
 
