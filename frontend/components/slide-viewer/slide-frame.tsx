@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
-import { Chapters, Slide, SlideVariant } from "@/lib/api/types";
+import { Chapters, Slide, SlideVariant, LearningStyle } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { DynamicContent } from "@/components/slide-viewer/dynamic-content";
@@ -19,11 +19,21 @@ interface SlideFrameProps {
 export function SlideFrame({ chapters, courseTitle, onExit }: SlideFrameProps) {
     const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [userPreference, setUserPreference] = useState<LearningStyle>("text");
+    
     console.log("Chapters received in SlideFrame:", chapters);
     const [currentChapter, setCurrentChapter] = useState<Chapters>(chapters[0]);
     const [slides, setSlides] = useState<Slide[]>(chapters[0]?.slides || []);
     const [currentSlide, setCurrentSlide] = useState<Slide | null>(slides.length > 0 ? slides[0] : null);
-    const [activeVariant, setActiveVariant] = useState<SlideVariant | null>(slides.length > 0 ? (slides[0].variants.text || Object.values(slides[0].variants)[0]) : null);
+    // const [activeVariant, setActiveVariant] = useState<SlideVariant | null>(slides.length > 0 ? (slides[0].variants.text || Object.values(slides[0].variants)[0]) : null);
+    
+    const [activeVariant, setActiveVariant] = useState<SlideVariant | null>(() => {
+        if (slides.length > 0) {
+            return slides[0].variants[userPreference] || slides[0].variants.text || Object.values(slides[0].variants)[0];
+        }
+        return null;
+    });
+
     const [showConfetti, setShowConfetti] = useState(false);
 
     useEffect(() => {
@@ -38,13 +48,16 @@ export function SlideFrame({ chapters, courseTitle, onExit }: SlideFrameProps) {
     useEffect(() => {
         if (slides.length > 0 && currentIndex < slides.length) {
             setCurrentSlide(slides[currentIndex]);
+            
             const vars = slides[currentIndex].variants;
-            setActiveVariant(vars.text || Object.values(vars)[0]);
+            
+            const preferredVariant = vars[userPreference] || vars.text || Object.values(vars)[0];
+            setActiveVariant(preferredVariant);
         } else {
             setCurrentSlide(null);
             setActiveVariant(null);
         }
-    }, [currentIndex, slides]);
+    }, [currentIndex, slides, userPreference]);
 
     const handleChapterChange = (value: string) => {
         const index = chapters.findIndex(ch => ch.id === value);
@@ -68,7 +81,11 @@ export function SlideFrame({ chapters, courseTitle, onExit }: SlideFrameProps) {
     };
 
     // Simulation of adaptation trigger
-    const triggerAdaptation = (type: "visual" | "text" | "example") => {
+    const triggerAdaptation = (type: LearningStyle | "text" | "example") => {
+        if (type === "visual" || type === "text") {
+            setUserPreference(type);
+        }
+        
         if (currentSlide?.variants[type]) {
             setActiveVariant(currentSlide.variants[type]);
         }
@@ -113,12 +130,32 @@ export function SlideFrame({ chapters, courseTitle, onExit }: SlideFrameProps) {
                             ))}
                         </SelectContent>
                     </Select>
+
                     <div className="hidden md:flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => triggerAdaptation("visual")} className="text-xs border-zinc-700 text-zinc-300">
-                            Simulate: Visual Adapt
+                        <Button 
+                            variant={activeVariant.type === "visual" ? "default" : "outline"} 
+                            size="sm" 
+                            onClick={() => triggerAdaptation("visual")} 
+                            className="text-xs border-zinc-700"
+                        >
+                            Visual
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => triggerAdaptation("text")} className="text-xs border-zinc-700 text-zinc-300">
-                            Simulate: Text Adapt
+                        <Button 
+                            variant={activeVariant.type === "text" ? "default" : "outline"} 
+                            size="sm" 
+                            onClick={() => triggerAdaptation("text")} 
+                            className="text-xs border-zinc-700"
+                        >
+                            Text
+                        </Button>
+                        
+                        <Button 
+                            variant={activeVariant.type === "example" ? "default" : "outline"} 
+                            size="sm" 
+                            onClick={() => triggerAdaptation("example")} 
+                            className="text-xs border-zinc-700"
+                        >
+                            Example
                         </Button>
                     </div>
                     <Progress value={progress} className="w-32 h-2 bg-zinc-800" />
