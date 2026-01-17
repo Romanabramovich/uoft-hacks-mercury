@@ -13,11 +13,21 @@ export interface LearningProfile {
   confidenceScore: number;
 }
 
+export interface UserPreferences {
+  lightMode: boolean;
+  dyslexicFont: boolean;
+  textSize: "small" | "medium" | "large" | "xl";
+  autoAdapt: boolean;
+  showConfidence: boolean;
+  pace: "slow" | "moderate" | "fast";
+}
+
 export interface User {
   id: string;
   name: string;
   role: "student" | "professor";
   profile?: LearningProfile;
+  preferences?: UserPreferences;
 }
 
 export interface SlideVariant {

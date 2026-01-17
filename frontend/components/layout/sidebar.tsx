@@ -25,11 +25,11 @@ const routes = [
         href: "/dashboard/performance",
         color: "text-pink-700",
     },
-    {
-        label: "Settings",
-        icon: Settings,
-        href: "/dashboard/settings",
-    },
+    // {
+    //     label: "Settings",
+    //     icon: Settings,
+    //     href: "/dashboard/settings",
+    // },
 ]
 
 export function Sidebar() {
@@ -43,11 +43,11 @@ export function Sidebar() {
                         {/* Logo placeholder */}
                         <div className="absolute inset-0 bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 rounded-lg blur-sm opacity-75 animate-pulse" />
                         <div className="relative w-full h-full bg-black rounded-lg border border-white/10 flex items-center justify-center">
-                            <span className="text-xl font-bold">M</span>
+                            <span className="text-xl font-bold">LI</span>
                         </div>
                     </div>
                     <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400">
-                        Mercury
+                        LearnID
                     </h1>
                 </Link>
                 <div className="space-y-1">
