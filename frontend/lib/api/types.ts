@@ -46,6 +46,8 @@ export interface SlideVariant {
 
 export interface Slide {
   id: string;
+  slideid: string;
+  chapterId: string; // Added to associate slides with chapters
   title: string;
   variants: Record<string, SlideVariant>; // key is the variant type or specific ID
 }
