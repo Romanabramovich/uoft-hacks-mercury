@@ -43,7 +43,7 @@ export function AdaptationHistory() {
                     Recent Adaptations
                 </CardTitle>
                 <CardDescription className="text-zinc-400">
-                    How Mercury adapted content for you recently.
+                    How LearnID adapted content for you recently.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

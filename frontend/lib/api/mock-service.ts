@@ -2,7 +2,7 @@ import { User, Course, Chapter, Slide, LearningEvent } from "./types";
 
 const MOCK_USER: User = {
     id: "student_123",
-    name: "Amy Learner",
+    name: "Amy",
     role: "student",
     profile: {
         optimalFormat: "text",
@@ -11,6 +11,14 @@ const MOCK_USER: User = {
         bestTimeOfDay: "evening",
         processingStyle: "bottom_up",
         confidenceScore: 0.87,
+    },
+    preferences: {
+        lightMode: false,
+        dyslexicFont: false,
+        textSize: "medium",
+        autoAdapt: true,
+        showConfidence: true,
+        pace: "moderate",
     },
 };
 
@@ -131,5 +139,12 @@ export class MockService {
     async logEvent(event: LearningEvent): Promise<void> {
         console.log("[MockService] Event Logged:", event);
         await new Promise((resolve) => setTimeout(resolve, 200));
+    }
+
+    async updatePreferences(userId: string, preferences: Partial<User['preferences']>): Promise<void> {
+        if (MOCK_USER.id === userId && MOCK_USER.preferences) {
+            MOCK_USER.preferences = { ...MOCK_USER.preferences, ...preferences };
+        }
+        await new Promise((resolve) => setTimeout(resolve, 500));
     }
 }

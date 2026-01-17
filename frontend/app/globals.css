@@ -1,7 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+/* @custom-variant dark (&:is(.dark *)); */
+@variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
@@ -119,7 +120,34 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Accessibility Modes */
+/* High Contrast Mode is now handled by switching to Light Theme via next-themes */
+
+/* Dyslexic Font */
+:root[class~="dyslexic-font"] {
+  /* Using a font-stack that includes common dyslexia friendly fonts or fallback */
+  --font-sans: 'OpenDyslexic', 'Comic Sans MS', 'Verdana', sans-serif !important;
+}
+
+/* Text Sizing */
+:root[data-text-size="small"] {
+  font-size: 14px;
+}
+
+:root[data-text-size="medium"] {
+  font-size: 16px;
+}
+
+:root[data-text-size="large"] {
+  font-size: 18px;
+}
+
+:root[data-text-size="xl"] {
+  font-size: 20px;
 }

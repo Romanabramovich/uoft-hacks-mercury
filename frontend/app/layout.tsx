@@ -2,13 +2,19 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SettingsProvider } from "@/components/providers/settings-provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Mercury | Adaptive Learning",
+  title: "LearnID | Adaptive Learning",
   description: "The self-improving course platform.",
 };
+
+import { EventTrackerProvider } from "@/hooks/analytics/useEventTracker";
+import { SessionProvider } from "@/components/providers/session-provider";
+
+// ... imports
 
 export default function RootLayout({
   children,
@@ -20,11 +26,17 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="dark"
+          defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <SettingsProvider>
+            <SessionProvider>
+              <EventTrackerProvider>
+                {children}
+              </EventTrackerProvider>
+            </SessionProvider>
+          </SettingsProvider>
         </ThemeProvider>
       </body>
     </html>
