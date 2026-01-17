@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { BookOpen, LayoutDashboard, Settings, GraduationCap, BarChart } from "lucide-react"
+import { BookOpen, LayoutDashboard, Settings, BarChart } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
@@ -24,13 +24,6 @@ const routes = [
         icon: BarChart,
         href: "/dashboard/performance",
         color: "text-pink-700",
-    },
-    {
-        label: "Professor Portal",
-        icon: GraduationCap,
-        href: "/professor",
-        color: "text-orange-700",
-        variant: "ghost"
     },
     {
         label: "Settings",

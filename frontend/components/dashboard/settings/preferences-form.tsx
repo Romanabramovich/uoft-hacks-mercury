@@ -30,7 +30,7 @@ export function PreferencesForm() {
                         </div>
                         <Switch />
                     </div>
-                    <dvi className="space-y-2">
+                    <div className="space-y-2">
                         <Label>Default Text Size</Label>
                         <Select defaultValue="medium">
                             <SelectTrigger className="bg-[#111827] border-white/10 text-white">
@@ -43,7 +43,7 @@ export function PreferencesForm() {
                                 <SelectItem value="xl">Extra Large</SelectItem>
                             </SelectContent>
                         </Select>
-                    </dvi>
+                    </div>
                 </CardContent>
             </Card>
 

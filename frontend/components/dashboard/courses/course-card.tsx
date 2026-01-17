@@ -35,7 +35,7 @@ export function CourseCard({ course, progress, lastAccessed }: CourseCardProps) 
                 )}
             </CardContent>
             <CardFooter>
-                <Link href={`/learn/${course.id}`} className="w-full">
+                <Link href={`/dashboard/courses/${course.id}`} className="w-full">
                     <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white group">
                         <PlayCircle className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
                         Continue Learning

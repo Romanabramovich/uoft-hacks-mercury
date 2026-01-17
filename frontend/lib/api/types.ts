@@ -1,7 +1,7 @@
-export type LearningStyle = 
-  | "visual" 
-  | "text" 
-  | "kinesthetic" 
+export type LearningStyle =
+  | "visual"
+  | "text"
+  | "kinesthetic"
   | "audio";
 
 export interface LearningProfile {
@@ -21,10 +21,17 @@ export interface User {
 }
 
 export interface SlideVariant {
-  type: LearningStyle | "interactive" | "example";
-  content: string; // HTML or Markdown content
+  type: "text" | "visual" | "example" | "quiz"; // Added quiz
+  content: string; // HTML content or Question JSON
   mediaUrl?: string; // For images/videos
   durationEstimate?: number; // seconds
+  // For quiz type
+  quizData?: {
+    questionId: string;
+    question: string;
+    options: { id: string; text: string }[];
+    correctOptionId: string;
+  };
 }
 
 export interface Slide {
@@ -33,11 +40,17 @@ export interface Slide {
   variants: Record<string, SlideVariant>; // key is the variant type or specific ID
 }
 
+export interface Chapter {
+  id: string;
+  title: string;
+  slides: Slide[];
+}
+
 export interface Course {
   id: string;
   title: string;
   instructorId: string;
-  slides: Slide[];
+  chapters: Chapter[];
 }
 
 export interface LearningEvent {

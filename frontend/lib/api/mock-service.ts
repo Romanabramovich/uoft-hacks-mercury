@@ -1,4 +1,4 @@
-import { User, Course, Slide, LearningEvent } from "./types";
+import { User, Course, Chapter, Slide, LearningEvent } from "./types";
 
 const MOCK_USER: User = {
     id: "student_123",
@@ -35,7 +35,8 @@ const MOCK_SLIDES: Slide[] = [
                 durationEstimate: 60,
             }
         }
-    },
+    }
+    ,
     {
         id: "slide_2",
         title: "The Power Rule",
@@ -49,15 +50,51 @@ const MOCK_SLIDES: Slide[] = [
                 content: "<div class='p-4 bg-muted rounded-lg text-center'>Visual representation of power rule moving exponent to front</div>"
             }
         }
+    },
+    {
+        id: "slide_3",
+        title: "Knowledge Check: Power Rule",
+        variants: {
+            text: { // Using text key as default wrapper, but type will be 'quiz'
+                type: "quiz",
+                content: "Quiz Content",
+                quizData: {
+                    questionId: "q_power_rule_1",
+                    question: "What is the derivative of f(x) = x^3?",
+                    options: [
+                        { id: "opt_1", text: "3x" },
+                        { id: "opt_2", text: "3x^2" },
+                        { id: "opt_3", text: "x^2" },
+                        { id: "opt_4", text: "2x^3" }
+                    ],
+                    correctOptionId: "opt_2"
+                }
+            }
+        }
     }
 ];
+
+const MOCK_CHAPTERS: Chapter[] = [
+    {
+        id: "chap_1",
+        title: "Chapter 1: Foundations of Derivatives",
+        slides: [MOCK_SLIDES[0]]
+    },
+    {
+        id: "chap_2",
+        title: "Chapter 2: Derivative Rules",
+        slides: [MOCK_SLIDES[1], MOCK_SLIDES[2]]
+    }
+];
+
 
 const MOCK_COURSE: Course = {
     id: "course_calc_101",
     title: "Calculus I: Limits & Derivatives",
     instructorId: "prof_smith",
-    slides: MOCK_SLIDES,
+    chapters: MOCK_CHAPTERS,
 };
+
 
 const MOCK_COURSES: Course[] = [
     MOCK_COURSE,
@@ -65,13 +102,13 @@ const MOCK_COURSES: Course[] = [
         id: "course_phys_101",
         title: "Physics 101: Mechanics",
         instructorId: "prof_doe",
-        slides: [], // Empty for now
+        chapters: [], // Empty for now
     },
     {
         id: "course_hist_200",
         title: "World History: 20th Century",
         instructorId: "prof_jones",
-        slides: [],
+        chapters: [],
     }
 ];
 
