@@ -3,9 +3,8 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
-import { Chapter, Chapters, Slide, SlideVariant } from "@/lib/api/types";
+import { Chapter, Slide, SlideVariant } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { DynamicContent } from "@/components/slide-viewer/dynamic-content";
@@ -79,7 +78,8 @@ export function SlideFrame({ chapters, courseTitle, onExit }: SlideFrameProps) {
 
     // Simulation of adaptation trigger
     const triggerAdaptation = (type: "visual" | "text" | "example") => {
-        if (currentSlide?.variants[type]) {
+        // In real app, this comes from backend push or websocket
+        if (currentSlide.variants[type]) {
             setActiveVariant(currentSlide.variants[type]);
         }
     };
@@ -113,18 +113,6 @@ export function SlideFrame({ chapters, courseTitle, onExit }: SlideFrameProps) {
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
-                    <Select value={currentChapter.id} onValueChange={handleChapterChange}>
-                        <SelectTrigger className="w-48 border-zinc-700 text-zinc-300">
-                            <SelectValue placeholder="Select Chapter" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-[#111827] border-zinc-700">
-                            {chapters.map((chapter, index) => (
-                                <SelectItem key={chapter.id} value={chapter.id} className="text-zinc-300">
-                                    {chapter.title}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
                     <div className="hidden md:flex gap-2">
                         <Button variant="outline" size="sm" onClick={() => triggerAdaptation("visual")} className="text-xs border-zinc-700 text-zinc-300">
                             Simulate: Visual Adapt
@@ -184,9 +172,11 @@ export function SlideFrame({ chapters, courseTitle, onExit }: SlideFrameProps) {
             {showConfetti && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/80 z-50 backdrop-blur-sm">
                     <div className="text-center space-y-4 animate-in zoom-in duration-300">
-                        <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-orange-500">Chapter Complete!</h1>
-                        <p className="text-zinc-400">You've mastered this chapter.</p>
-                        <Button onClick={() => setShowConfetti(false)} className="mt-4 bg-white text-black hover:bg-gray-200">Continue</Button>
+                        <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-orange-500">Lesson Complete!</h1>
+                        <p className="text-zinc-400">You've mastered this concept.</p>
+                        <Link href="/dashboard">
+                            <Button size="lg" className="mt-4 bg-white text-black hover:bg-gray-200">Return to Dashboard</Button>
+                        </Link>
                     </div>
                 </div>
             )}

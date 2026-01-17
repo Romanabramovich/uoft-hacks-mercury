@@ -24,9 +24,7 @@ const MOCK_USER: User = {
 
 const MOCK_SLIDES: Slide[] = [
     {
-        id: "course_calc_101",
-        slideid: "slide_1",
-        chapterId: "chapter_1",
+        id: "slide_1",
         title: "Introduction to Derivatives",
         variants: {
             visual: {
@@ -48,22 +46,7 @@ const MOCK_SLIDES: Slide[] = [
     }
     ,
     {
-        id: "course_calc_101",
-        slideid: "slide_2",
-        chapterId: "chapter_1", // Another slide for chapter_1
-        title: "Introduction to Derivatives",
-        variants: {
-            text: {
-                type: "text",
-                content: "<div class='prose dark:prose-invert'><h3>Additional Concepts</h3><p>Derivatives can be used to find rates of change in various contexts.</p></div>",
-                durationEstimate: 40,
-            }
-        }
-    },
-    {
-        id: "course_calc_101",
-        slideid: "slide_1",
-        chapterId: "chapter_2", // Slide for chapter_2
+        id: "slide_2",
         title: "The Power Rule",
         variants: {
             text: {
