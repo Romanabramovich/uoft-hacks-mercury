@@ -139,6 +139,22 @@ export const sessionAPI = {
         } catch (error) {
             console.error('[SessionAPI] Failed to end session:', error);
         }
+    },
+
+    startTracker: async () => {
+        try {
+            await fetchWithTimeout(`${BASE_URL}/api/tracker/start`, { method: 'POST' });
+        } catch (error) {
+            console.error('[SessionAPI] Failed to start tracker:', error);
+        }
+    },
+
+    stopTracker: async () => {
+        try {
+            await fetchWithTimeout(`${BASE_URL}/api/tracker/stop`, { method: 'POST' });
+        } catch (error) {
+            console.error('[SessionAPI] Failed to stop tracker:', error);
+        }
     }
 };
 

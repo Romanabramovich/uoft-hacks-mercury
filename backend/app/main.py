@@ -13,6 +13,12 @@ from .understanding_calculator import (
     aggregate_focus_scores,
     should_adjust_identity
 )
+import threading
+from .screen_tracker import ScreenTimeTracker
+
+# Webcam Tracker Global State
+tracker_instance = None
+tracker_thread = None
 
 app = FastAPI(title="Mercury API", version="1.0.0")
 
@@ -1324,6 +1330,48 @@ async def root():
         "version": "1.0.0",
         "docs": "/docs"
     }
+
+
+
+# ============================================================================
+# WEBCAM TRACKER CONTROL
+# ============================================================================
+
+@app.post("/api/tracker/start")
+async def start_tracker():
+    """Start the webcam attention tracker in a background thread."""
+    global tracker_instance, tracker_thread
+    
+    if tracker_instance and tracker_instance.is_running:
+        return {"message": "Tracker already running", "status": "running"}
+
+    try:
+        tracker_instance = ScreenTimeTracker()
+        tracker_instance.start_tracking()
+        
+        def run_tracker():
+            # Run the tracker loop
+            # We could pass a callback here to log database events if needed
+            tracker_instance.run()
+            
+        tracker_thread = threading.Thread(target=run_tracker, daemon=True)
+        tracker_thread.start()
+        
+        return {"message": "Tracker started successfully", "status": "started"}
+    except Exception as e:
+        print(f"Failed to start tracker: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to start tracker: {str(e)}")
+
+@app.post("/api/tracker/stop")
+async def stop_tracker():
+    """Stop the webcam attention tracker."""
+    global tracker_instance
+    
+    if tracker_instance and tracker_instance.is_running:
+        tracker_instance.stop_tracking()
+        return {"message": "Tracker stopped", "status": "stopped"}
+    
+    return {"message": "Tracker was not running", "status": "not_running"}
 
 
 if __name__ == "__main__":
