@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getDatabase } from '@/lib/mongodb';
 
 export async function POST(request: Request) {
     try {
@@ -12,11 +13,31 @@ export async function POST(request: Request) {
         });
         console.log('------------------------------------------------');
 
-        // TODO: Connect to DB here
+        // Connect to MongoDB and save events
+        const db = await getDatabase();
+        const eventsCollection = db.collection('events');
+        
+        // Add server timestamp to each event
+        const eventsWithServerTimestamp = events.map((event: any) => ({
+            ...event,
+            serverTimestamp: new Date(),
+        }));
 
-        return NextResponse.json({ status: 'success', count: events.length });
+        // Insert events into MongoDB
+        const result = await eventsCollection.insertMany(eventsWithServerTimestamp);
+        
+        console.log(`[MongoDB] Successfully inserted ${result.insertedCount} events`);
+
+        return NextResponse.json({ 
+            status: 'success', 
+            count: events.length,
+            insertedCount: result.insertedCount 
+        });
     } catch (error) {
         console.error("Error processing events:", error);
-        return NextResponse.json({ status: 'error', message: 'Invalid payload' }, { status: 400 });
+        return NextResponse.json({ 
+            status: 'error', 
+            message: error instanceof Error ? error.message : 'Invalid payload' 
+        }, { status: 400 });
     }
 }
