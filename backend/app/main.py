@@ -851,100 +851,296 @@ async def health_check():
     }
 
 
-@app.post("/api/lessons/{lesson_id}/complete")
-async def complete_lesson(
-    lesson_id: str,
+@app.post("/api/chapters/{chapter_id}/complete")
+async def complete_chapter(
+    chapter_id: str,
+    course_id: str,
     user_id: str,
     session_id: str
 ):
     """
-    Mark a lesson as complete and trigger identity extraction if it's the first lesson.
-    After first lesson, pre-generate slides for lesson 2 based on extracted profile.
+    Mark a chapter as complete and pre-generate slides for the next chapter.
+    - If this is chapter_1 (baseline): Extract learning identity first
+    - Then: Pre-generate ALL slides for the next chapter based on user's profile
     
-    - lesson_id: The lesson being completed
-    - user_id: The user completing the lesson
+    - chapter_id: The chapter being completed (e.g., "chapter_1")
+    - course_id: The course this chapter belongs to
+    - user_id: The user completing the chapter
     - session_id: Current session identifier
     """
     if db is None:
         raise HTTPException(status_code=503, detail="Database connection unavailable")
     
     try:
-        # Mark lesson as completed
+        # Mark chapter as completed
         completion_doc = {
             "user_id": user_id,
-            "lesson_id": lesson_id,
+            "course_id": course_id,
+            "chapter_id": chapter_id,
             "session_id": session_id,
             "completed_at": datetime.now()
         }
-        db.lesson_completions.insert_one(completion_doc)
+        db.chapter_completions.insert_one(completion_doc)
         
-        # Check if this is the first lesson (baseline)
-        lesson = db.lessons.find_one({"lesson_id": lesson_id})
-        
-        if not lesson:
-            # If lesson doesn't exist in DB, check if it's marked as first in course structure
-            # For now, assume lesson_1 or chapter_1 naming indicates baseline
-            is_baseline = "lesson_1" in lesson_id or "chap_1" in lesson_id or lesson_id.endswith("_1")
-        else:
-            is_baseline = lesson.get("is_baseline", False)
+        # Check if this is the first chapter (baseline)
+        is_baseline = chapter_id == "chapter_1" or "chapter_1" in chapter_id
         
         profile_generated = False
         slides_generated = 0
+        next_chapter_id = None
         
-        if is_baseline:
-            # Extract learning identity from first lesson performance
+        # Extract or update learning identity
+        user = db.users.find_one({"user_id": user_id})
+        
+        if is_baseline or not user or "learning_identity" not in user:
+            # Extract learning identity from performance
+            print(f"Extracting learning identity for user {user_id}...")
             identity = await extract_learning_identity(user_id, lookback_days=1)
             profile_generated = True
+        else:
+            # Use existing identity
+            identity_data = user["learning_identity"]
+            class Identity:
+                def __init__(self, data):
+                    self.visual_text_score = data.get("visual_text_score", 0.5)
+                    self.pace = data.get("pace", "moderate")
+            identity = Identity(identity_data)
+        
+        # Find next chapter
+        current_chapter_order = int(chapter_id.split("_")[-1]) if "_" in chapter_id else 1
+        next_chapter_order = current_chapter_order + 1
+        next_chapter_id = f"chapter_{next_chapter_order}"
+        
+        # Get all slide topics for next chapter
+        next_chapter_slides = list(
+            db.slide_topics.find({
+                "course_id": course_id,
+                "chapter_id": next_chapter_id
+            }).sort("order", 1)
+        )
+        
+        if next_chapter_slides:
+            print(f"Pre-generating {len(next_chapter_slides)} slides for {next_chapter_id}...")
+            generator = get_slide_generator()
             
-            # Pre-generate slides for lesson 2
-            # Find lesson 2 in the database
-            lesson_2 = db.lessons.find_one({"course_id": lesson.get("course_id") if lesson else None, "order": 2})
+            for slide_topic in next_chapter_slides:
+                try:
+                    # Generate slide content based on user's profile
+                    print(f"  Generating: {slide_topic['title']}...")
+                    result = generator.generate_slide_content(
+                        topic=slide_topic["title"],
+                        learning_objectives=slide_topic["learning_objectives"],
+                        visual_text_score=identity.visual_text_score,
+                        context=slide_topic["context"]
+                    )
+                    
+                    # Store generated slide in database
+                    generated_slide = {
+                        "user_id": user_id,
+                        "course_id": course_id,
+                        "chapter_id": next_chapter_id,
+                        "slide_id": slide_topic["slide_id"],
+                        "title": slide_topic["title"],
+                        "content": result["content"],
+                        "content_type": result["content_type"],
+                        "visual_text_score": result["visual_text_score"],
+                        "video_url": result.get("video_url"),
+                        "thumbnail_url": result.get("thumbnail_url"),
+                        "metadata": result.get("metadata", {}),
+                        "generated_at": datetime.now()
+                    }
+                    db.generated_slides.insert_one(generated_slide)
+                    slides_generated += 1
+                    print(f"  ✓ Generated: {slide_topic['title']}")
+                    
+                except Exception as e:
+                    print(f"  ✗ Failed to generate slide '{slide_topic['title']}': {str(e)}")
+                    continue
             
-            if lesson_2 and "slide_topics" in lesson_2:
-                generator = get_slide_generator()
-                
-                for slide_topic in lesson_2["slide_topics"]:
-                    try:
-                        # Generate slide content based on user's profile
-                        result = generator.generate_slide_content(
-                            topic=slide_topic.get("title", ""),
-                            learning_objectives=slide_topic.get("objectives", ""),
-                            visual_text_score=identity.visual_text_score,
-                            context=slide_topic.get("context", "")
-                        )
-                        
-                        # Store generated slide in database
-                        generated_slide = {
-                            "user_id": user_id,
-                            "lesson_id": lesson_2["lesson_id"],
-                            "slide_id": f"{lesson_2['lesson_id']}_slide_{slides_generated + 1}",
-                            "topic": slide_topic.get("title", ""),
-                            "content": result["content"],
-                            "content_type": result["content_type"],
-                            "visual_text_score": result["visual_text_score"],
-                            "video_url": result.get("video_url"),
-                            "thumbnail_url": result.get("thumbnail_url"),
-                            "metadata": result.get("metadata", {}),
-                            "generated_at": datetime.now()
-                        }
-                        db.generated_slides.insert_one(generated_slide)
-                        slides_generated += 1
-                        
-                    except Exception as e:
-                        print(f"Failed to generate slide for topic {slide_topic.get('title', '')}: {str(e)}")
-                        continue
+            print(f"✓ Pre-generated {slides_generated}/{len(next_chapter_slides)} slides for {next_chapter_id}")
+        else:
+            print(f"No more chapters found after {chapter_id}")
         
         return {
-            "message": "Lesson completed successfully",
-            "lesson_id": lesson_id,
+            "message": "Chapter completed successfully",
+            "chapter_id": chapter_id,
+            "next_chapter_id": next_chapter_id if next_chapter_slides else None,
             "is_baseline": is_baseline,
             "profile_generated": profile_generated,
             "slides_generated": slides_generated,
+            "slides_total": len(next_chapter_slides),
             "timestamp": datetime.now()
         }
     
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error completing lesson: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error completing chapter: {str(e)}")
+
+
+# ============================================================================
+# SLIDE TOPICS AND COURSE STRUCTURE
+# ============================================================================
+
+@app.get("/api/courses/{course_id}/structure")
+async def get_course_structure(course_id: str):
+    """
+    Get the complete course structure with chapters and slide topics.    
+    - course_id: The course identifier
+    """
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database connection unavailable")
+    
+    try:
+        # Fetch all slide topics for this course
+        slide_topics = list(
+            db.slide_topics.find({"course_id": course_id})
+            .sort([("chapter_order", 1), ("order", 1)])
+        )
+        
+        if not slide_topics:
+            raise HTTPException(status_code=404, detail=f"No slides found for course {course_id}")
+        
+        # Group slides by chapter
+        chapters = {}
+        for slide in slide_topics:
+            chapter_id = slide["chapter_id"]
+            
+            if chapter_id not in chapters:
+                chapters[chapter_id] = {
+                    "id": chapter_id,
+                    "title": slide["chapter_title"],
+                    "order": slide["chapter_order"],
+                    "slides": []
+                }
+            
+            chapters[chapter_id]["slides"].append({
+                "slide_id": slide["slide_id"],
+                "title": slide["title"],
+                "learning_objectives": slide["learning_objectives"],
+                "context": slide["context"],
+                "order": slide["order"]
+            })
+        
+        # Convert to list and sort by order
+        chapters_list = sorted(chapters.values(), key=lambda x: x["order"])
+        
+        return {
+            "course_id": course_id,
+            "total_chapters": len(chapters_list),
+            "total_slides": len(slide_topics),
+            "chapters": chapters_list
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching course structure: {str(e)}")
+
+
+@app.post("/api/slides/generate-for-user", response_model=SlideGenerationResponse)
+async def generate_slide_for_user(request: SlideGenerationRequest):
+    """
+    Generate personalized slide content on-demand for a specific user.
+    This is called by the frontend when a student navigates to a slide.
+    
+    The content is dynamically generated based on:
+    - The slide topic/title
+    - The user's learning identity (visual vs text preference)
+    - Learning objectives and context
+    
+    - request: Contains topic, learning_objectives, user_id, context
+    """
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database connection unavailable")
+    
+    try:
+        # Get user's learning identity
+        user = db.users.find_one({"user_id": request.user_id})
+        
+        if not user or "learning_identity" not in user:
+            # Use default identity for first-time users
+            visual_text_score = 0.5
+            print(f"Warning: No learning identity found for user {request.user_id}, using default 0.5")
+        else:
+            identity = user["learning_identity"]
+            visual_text_score = identity.get("visual_text_score", 0.5)
+        
+        # Get slide generator
+        generator = get_slide_generator()
+        
+        # Generate personalized content
+        result = generator.generate_slide_content(
+            topic=request.topic,
+            learning_objectives=request.learning_objectives,
+            visual_text_score=visual_text_score,
+            context=request.context,
+            previous_content=request.previous_content,
+            force_format=request.force_format
+        )
+        
+        # Log the generation for analytics
+        db.slide_generations.insert_one({
+            "user_id": request.user_id,
+            "topic": request.topic,
+            "visual_text_score": visual_text_score,
+            "generated_at": datetime.now(),
+            "content_type": result.get("content_type"),
+            "metadata": result.get("metadata", {})
+        })
+        
+        return SlideGenerationResponse(
+            content=result["content"],
+            content_type=result.get("content_type", "html"),
+            visual_text_score=result["visual_text_score"],
+            topic=result["topic"],
+            video_url=result.get("video_url"),
+            thumbnail_url=result.get("thumbnail_url"),
+            metadata=result.get("metadata", {})
+        )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating slide: {str(e)}")
+
+
+@app.get("/api/slides/pre-generated")
+async def get_pre_generated_slides(
+    user_id: str = Query(..., description="User ID"),
+    course_id: str = Query(..., description="Course ID"),
+    chapter_id: str = Query(..., description="Chapter ID")
+):
+    """
+    Fetch pre-generated slides for a specific user, course, and chapter.
+    Returns slides that were generated after completing the previous chapter.
+    
+    - user_id: The user requesting slides
+    - course_id: The course ID
+    - chapter_id: The chapter ID
+    """
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database connection unavailable")
+    
+    try:
+        # Find pre-generated slides
+        slides = list(
+            db.generated_slides.find({
+                "user_id": user_id,
+                "course_id": course_id,
+                "chapter_id": chapter_id
+            }).sort("generated_at", 1)
+        )
+        
+        # Remove MongoDB _id for serialization
+        for slide in slides:
+            slide["_id"] = str(slide["_id"])
+        
+        return {
+            "slides": slides,
+            "count": len(slides)
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching pre-generated slides: {str(e)}")
 
 
 @app.get("/")

@@ -17,13 +17,28 @@ function LearnPageContent() {
     const [course, setCourse] = useState<Course | null>(null);
     const router = useRouter();
 
+    // Enable dynamic generation - set to true to use backend LLM generation
+    const enableDynamicGeneration = process.env.NEXT_PUBLIC_ENABLE_DYNAMIC_GENERATION === 'true';
+    
+    // Mock user ID - in production, get from auth context
+    const userId = "student_123";
+
     useEffect(() => {
-        // In a real server component we'd await params and fetch data
-        // Here we fetch client side for the interaction demo
-        if (courseId) {
+        // Only fetch course if NOT using dynamic generation
+        // (dynamic generation fetches structure from backend directly)
+        if (courseId && !enableDynamicGeneration) {
             apiClient.getCourse(courseId).then(setCourse);
+        } else if (courseId && enableDynamicGeneration) {
+            // For dynamic generation, just set a minimal course object
+            // The actual structure will be fetched by useSlideGeneration hook
+            setCourse({
+                id: courseId,
+                title: "Calculus I: Limits & Derivatives",
+                instructorId: "prof_smith",
+                chapters: [] // Will be populated by hook
+            });
         }
-    }, [courseId]);
+    }, [courseId, enableDynamicGeneration]);
 
     const handleChapterComplete = (completedChapterId: string) => {
         // Mock persistence of progress
@@ -53,9 +68,12 @@ function LearnPageContent() {
         <SlideFrame
             chapters={course.chapters}
             courseTitle={course.title}
+            courseId={courseId}
+            userId={userId}
             initialChapterId={chapterId}
             onExit={() => router.push(`/dashboard/courses/${courseId}`)}
             onChapterComplete={handleChapterComplete}
+            enableDynamicGeneration={enableDynamicGeneration}
         />
     );
 }

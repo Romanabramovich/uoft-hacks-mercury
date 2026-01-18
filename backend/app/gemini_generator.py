@@ -235,7 +235,15 @@ Generate the slide content as HTML that can be rendered directly. Include:
    - [DIAGRAM: description of what the diagram shows]
    - [FLOWCHART: step-by-step flow description]
    - [GRAPH: description of axes, curves, and important points]
-4. Keep content concise but comprehensive (aim for 200-400 words)
+4. Keep content concise and focused (aim for 150-250 words maximum)
+5. Content should fit within a single slide viewport (no excessive scrolling)
+
+**Length Constraints (CRITICAL):**
+- Maximum 3-4 main bullet points or sections
+- Each section should be 2-3 sentences maximum
+- Total content should be readable in 2-3 minutes
+- Focus on KEY concepts only - avoid excessive detail
+- Think "slide deck" not "textbook chapter"
 
 **Additional Guidelines:**
 - Ensure content is pedagogically sound and academically rigorous
@@ -243,6 +251,8 @@ Generate the slide content as HTML that can be rendered directly. Include:
 - Use proper semantic HTML tags (h2, h3, p, ul, li, div, strong, em, etc.)
 - Maintain educational value while adapting to the preferred learning style
 - Do NOT generate code, equations should use standard notation within text
+- Keep paragraphs short (2-4 lines maximum)
+- Use whitespace effectively for readability
 
 Generate the HTML content now:"""
         

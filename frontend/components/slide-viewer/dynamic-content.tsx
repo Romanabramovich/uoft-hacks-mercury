@@ -39,10 +39,10 @@ export function DynamicContent({ variant, title, onInteraction }: DynamicContent
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -20, scale: 1.05 }}
                     transition={{ duration: 0.4, ease: "easeOut" }}
-                    className="bg-[#1f2937]/50 backdrop-blur-md rounded-2xl p-8 border border-white/5 shadow-2xl min-h-[400px] flex flex-col"
+                    className="bg-[#1f2937]/50 backdrop-blur-md rounded-2xl p-8 border border-white/5 shadow-2xl max-h-[600px] overflow-y-auto flex flex-col"
                 >
                     <div
-                        className="prose dark:prose-invert max-w-none text-lg text-zinc-300 leading-relaxed"
+                        className="prose dark:prose-invert max-w-none text-lg text-zinc-300 leading-relaxed prose-headings:text-white prose-h2:text-2xl prose-h3:text-xl prose-p:mb-3 prose-li:mb-1"
                         dangerouslySetInnerHTML={{ __html: variant.content }}
                         onClick={() => onInteraction("click")}
                     />

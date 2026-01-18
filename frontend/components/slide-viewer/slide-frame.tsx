@@ -4,24 +4,55 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Maximize2, X, Sparkles } from "lucide-react";
 import { Chapter, Slide, SlideVariant, LearningStyle } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { DynamicContent } from "@/components/slide-viewer/dynamic-content";
 import { useFocusTracking } from "@/hooks/analytics/useFocusTracking";
+import { useSlideGeneration } from "@/hooks/analytics/useSlideGeneration";
+import { slidesAPI } from "@/services/api";
 
 interface SlideFrameProps {
     chapters: Chapter[];
     courseTitle: string;
+    courseId: string;
+    userId: string;
     initialChapterId?: string;
     onExit: () => void;
     onChapterComplete?: (chapterId: string) => void;
+    enableDynamicGeneration?: boolean; // Enable backend LLM generation
 }
 
-export function SlideFrame({ chapters, courseTitle, initialChapterId, onExit, onChapterComplete }: SlideFrameProps) {
+export function SlideFrame({ 
+    chapters: initialChapters, 
+    courseTitle, 
+    courseId,
+    userId,
+    initialChapterId, 
+    onExit, 
+    onChapterComplete,
+    enableDynamicGeneration = false
+}: SlideFrameProps) {
     // Initialize analytics
     useFocusTracking();
+
+    // Use slide generation hook
+    const { 
+        chapters: generatedChapters, 
+        loading: loadingStructure, 
+        error: structureError,
+        generateSlideContent,
+        isGenerating,
+        generatingSlideId
+    } = useSlideGeneration({
+        courseId,
+        userId,
+        enableGeneration: enableDynamicGeneration
+    });
+
+    // Use generated chapters if dynamic generation is enabled, otherwise use initial chapters
+    const chapters = enableDynamicGeneration ? generatedChapters : initialChapters;
 
     // Core navigation state
     const [currentChapterIndex, setCurrentChapterIndex] = useState(() => {
@@ -45,6 +76,20 @@ export function SlideFrame({ chapters, courseTitle, initialChapterId, onExit, on
     const currentChapter = chapters[currentChapterIndex];
     const slides = currentChapter?.slides || [];
     const currentSlide: Slide | null = slides[currentSlideIndex] || null;
+
+    // Generate content when navigating to a new slide (if dynamic generation enabled)
+    useEffect(() => {
+        if (enableDynamicGeneration && currentSlide && !isGenerating) {
+            // Check if slide content needs to be generated
+            const hasContent = currentSlide.variants.text?.content && 
+                              !currentSlide.variants.text.content.includes("Loading personalized content");
+            
+            if (!hasContent) {
+                console.log(`Auto-generating content for slide: ${currentSlide.title}`);
+                generateSlideContent(currentChapterIndex, currentSlideIndex);
+            }
+        }
+    }, [currentChapterIndex, currentSlideIndex, enableDynamicGeneration, currentSlide]);
 
     // Effect to update activeVariant when slide changes or preference changes
     useEffect(() => {
@@ -80,7 +125,34 @@ export function SlideFrame({ chapters, courseTitle, initialChapterId, onExit, on
         }
     };
 
-    const handleFinish = () => {
+    const handleFinish = async () => {
+        if (!currentChapter) return;
+
+        // Call backend to mark chapter complete and pre-generate next chapter
+        // Run this in the background - don't wait for it
+        if (enableDynamicGeneration) {
+            // Fire and forget - don't await
+            slidesAPI.completeChapter(
+                currentChapter.id,
+                courseId,
+                userId,
+                'session_' + Date.now()
+            ).then(result => {
+                console.log(`✓ Chapter complete!`);
+                console.log(`  - Profile generated: ${result.profile_generated}`);
+                console.log(`  - Next chapter: ${result.next_chapter_id}`);
+                console.log(`  - Pre-generated ${result.slides_generated}/${result.slides_total} slides`);
+                
+                if (result.slides_generated > 0) {
+                    console.log(`🎉 Next chapter personalized with ${result.slides_generated} slides!`);
+                }
+            }).catch(error => {
+                console.error('Background chapter completion failed:', error);
+                // Fail silently - don't block user experience
+            });
+        }
+
+        // Immediately return to course page - don't wait for generation
         if (onChapterComplete && currentChapter) {
             onChapterComplete(currentChapter.id);
         } else {
@@ -117,11 +189,39 @@ export function SlideFrame({ chapters, courseTitle, initialChapterId, onExit, on
         }
     };
 
+    // Manual regeneration button
+    const handleRegenerate = async () => {
+        if (enableDynamicGeneration && !isGenerating) {
+            await generateSlideContent(currentChapterIndex, currentSlideIndex, true);
+        }
+    };
+
     const totalSlides = chapters.reduce((acc, chap) => acc + chap.slides.length, 0);
     // Calculate global progress
     const previousChaptersSlides = chapters.slice(0, currentChapterIndex).reduce((acc, chap) => acc + chap.slides.length, 0);
     const completedSlides = previousChaptersSlides + currentSlideIndex + 1;
     const progress = totalSlides > 0 ? (completedSlides / totalSlides) * 100 : 0;
+
+    // Loading state
+    if (loadingStructure) {
+        return (
+            <div className="flex flex-col h-screen bg-[#0b0f19] text-white items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4" />
+                <p className="text-zinc-400">Loading course structure...</p>
+            </div>
+        );
+    }
+
+    // Error state
+    if (structureError) {
+        return (
+            <div className="flex flex-col h-screen bg-[#0b0f19] text-white items-center justify-center">
+                <p className="text-red-400 mb-2">Failed to load course</p>
+                <p className="text-zinc-500 text-sm mb-4">{structureError}</p>
+                <Button onClick={onExit}>Exit</Button>
+            </div>
+        );
+    }
 
     if (!currentSlide || !activeVariant) {
         return (
@@ -164,6 +264,18 @@ export function SlideFrame({ chapters, courseTitle, initialChapterId, onExit, on
                     </Select>
 
                     <div className="hidden md:flex gap-2">
+                        {enableDynamicGeneration && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleRegenerate}
+                                disabled={isGenerating}
+                                className="text-xs border-zinc-700"
+                            >
+                                <Sparkles className="w-3 h-3 mr-1" />
+                                {isGenerating ? "Generating..." : "Regenerate"}
+                            </Button>
+                        )}
                         {activeVariant?.type === "example" && previousVariant && (
                             <Button
                                 variant="outline"
@@ -190,11 +302,19 @@ export function SlideFrame({ chapters, courseTitle, initialChapterId, onExit, on
             {/* Main Content Area */}
             <div className="flex-1 flex overflow-hidden relative">
                 <div className="flex-1 relative flex items-center justify-center p-8 md:p-16">
-                    <DynamicContent
-                        variant={activeVariant}
-                        title={currentSlide.title}
-                        onInteraction={(type: string) => console.log("Interaction:", type)}
-                    />
+                    {isGenerating && generatingSlideId === currentSlide.slideid ? (
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mb-4 mx-auto" />
+                            <p className="text-zinc-400">Generating personalized content...</p>
+                            <p className="text-zinc-600 text-sm mt-2">This may take a few moments</p>
+                        </div>
+                    ) : (
+                        <DynamicContent
+                            variant={activeVariant}
+                            title={currentSlide.title}
+                            onInteraction={(type: string) => console.log("Interaction:", type)}
+                        />
+                    )}
                 </div>
 
                 {/* Webcam Placeholder - Fixed absolute right */}
@@ -222,6 +342,7 @@ export function SlideFrame({ chapters, courseTitle, initialChapterId, onExit, on
 
                 <Button
                     onClick={handleNext}
+                    disabled={isGenerating}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-8"
                 >
                     {currentSlideIndex === slides.length - 1
