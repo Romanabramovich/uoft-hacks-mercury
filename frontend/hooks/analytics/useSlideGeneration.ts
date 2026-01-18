@@ -40,6 +40,11 @@ export function useSlideGeneration({ courseId, userId, enableGeneration = true }
 
                 const structure = await slidesAPI.getCourseStructure(courseId);
 
+                // Load mock data for chapter_1
+                const mockService = new MockService();
+                const mockCourse = await mockService.getCourse(courseId);
+                const mockChapter1 = mockCourse.chapters.find(ch => ch.id === "chapter_1");
+
                 // Transform backend structure to frontend Chapter/Slide format
                 const transformedChapters: Chapter[] = structure.chapters.map(chapter => {
                     // Use hardcoded HTML for chapter_1
@@ -47,15 +52,15 @@ export function useSlideGeneration({ courseId, userId, enableGeneration = true }
                         console.log(`✓ Using hardcoded HTML for ${chapter.id}`);
                         return mockChapter1; // Return the full mock chapter with hardcoded HTML
                     }
-                    
+
                     // For other chapters, initialize with placeholder content
                     console.log(`✓ Initializing ${chapter.id} with placeholder content for LLM generation`);
                     return {
                         id: chapter.id,
                         title: chapter.title,
                         slides: chapter.slides.map(slide => ({
-                            id: courseId,
-                            slideid: slide.slide_id,
+                            id: slide.slide_id,
+                            courseId: courseId,
                             chapterId: chapter.id,
                             title: slide.title,
                             variants: {
@@ -141,6 +146,7 @@ export function useSlideGeneration({ courseId, userId, enableGeneration = true }
                 };
             } else {
                 // Generate on-demand
+                console.log(`Generating content for ${slide.title} - on demand`);
                 const structure = await slidesAPI.getCourseStructure(courseId);
                 const chapterData = structure.chapters.find(c => c.id === chapter.id);
                 const slideData = chapterData?.slides.find(s => s.slide_id === slide.id);
@@ -157,30 +163,39 @@ export function useSlideGeneration({ courseId, userId, enableGeneration = true }
                 );
             }
 
-            // Update the slide with generated content
-            const updatedChapters = [...chapters];
-            const targetSlide = updatedChapters[chapterIndex].slides[slideIndex];
+            // Update the slide with generated content immutably
+            setChapters(prevChapters => prevChapters.map((chapter, cIdx) => {
+                if (cIdx !== chapterIndex) return chapter;
 
-            if (result.content_type === 'html') {
-                targetSlide.variants = {
-                    text: {
-                        type: "text",
-                        content: result.content,
-                        durationEstimate: 45
-                    }
-                };
-            } else if (result.content_type === 'manim' && result.video_url) {
-                targetSlide.variants = {
-                    visual: {
-                        type: "visual",
-                        content: `<div class="aspect-video"><video src="${result.video_url}" controls autoplay loop /></div>`,
-                        mediaUrl: result.video_url,
-                        durationEstimate: 60
-                    }
-                };
-            }
+                return {
+                    ...chapter,
+                    slides: chapter.slides.map((slide, sIdx) => {
+                        if (sIdx !== slideIndex) return slide;
 
-            setChapters(updatedChapters);
+                        let newVariants = { ...slide.variants };
+
+                        if (result.content_type === 'html') {
+                            newVariants.text = {
+                                type: "text",
+                                content: result.content,
+                                durationEstimate: 45
+                            };
+                        } else if (result.content_type === 'manim' && result.video_url) {
+                            newVariants.visual = {
+                                type: "visual",
+                                content: `<div class="aspect-video"><video src="${result.video_url}" controls autoplay loop /></div>`,
+                                mediaUrl: result.video_url,
+                                durationEstimate: 60
+                            };
+                        }
+
+                        return {
+                            ...slide,
+                            variants: newVariants
+                        };
+                    })
+                };
+            }));
 
             // Cache the result
             setGeneratedCache(prev => ({
@@ -196,12 +211,10 @@ export function useSlideGeneration({ courseId, userId, enableGeneration = true }
         } catch (err) {
             console.error(`Failed to generate slide content:`, err);
 
-            // Set error state in the slide
-            
             // Differentiate error types for better UX
             let errorMessage = 'Failed to generate personalized content';
             let errorDetail = '';
-            
+
             if (err instanceof Error) {
                 if (err.message.includes('timeout') || err.message.includes('aborted')) {
                     errorMessage = 'Content generation timed out';
@@ -216,36 +229,49 @@ export function useSlideGeneration({ courseId, userId, enableGeneration = true }
                     errorDetail = err.message;
                 }
             }
-            
-            // Set error state in the slide with retry button
-            const updatedChapters = [...chapters];
-            updatedChapters[chapterIndex].slides[slideIndex].variants = {
-                text: {
-                    type: "text",
-                    content: `<div class="text-center p-8 bg-red-900/20 border border-red-700/50 rounded-lg">
-                        <div class="text-red-400 mb-4">
-                            <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                            </svg>
-                            <p class="font-semibold text-lg mb-2">${errorMessage}</p>
-                            <p class="text-sm text-zinc-400 mb-4">${errorDetail}</p>
-                        </div>
-                        <div class="space-y-3">
-                            <button 
-                                onclick="window.location.reload()" 
-                                class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                            >
-                                Try Again
-                            </button>
-                            <p class="text-xs text-zinc-500">
-                                If this problem persists, please contact support or try a different slide.
-                            </p>
-                        </div>
-                    </div>`,
-                    durationEstimate: 0
-                }
-            };
-            setChapters(updatedChapters);
+
+            // Set error state in the slide with retry button immutably
+            setChapters(prevChapters => prevChapters.map((chapter, cIdx) => {
+                if (cIdx !== chapterIndex) return chapter;
+
+                return {
+                    ...chapter,
+                    slides: chapter.slides.map((slide, sIdx) => {
+                        if (sIdx !== slideIndex) return slide;
+
+                        return {
+                            ...slide,
+                            variants: {
+                                ...slide.variants,
+                                text: {
+                                    type: "text",
+                                    content: `<div class="text-center p-8 bg-red-900/20 border border-red-700/50 rounded-lg">
+                                        <div class="text-red-400 mb-4">
+                                            <svg class="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                                            </svg>
+                                            <p class="font-semibold text-lg mb-2">${errorMessage}</p>
+                                            <p class="text-sm text-zinc-400 mb-4">${errorDetail}</p>
+                                        </div>
+                                        <div class="space-y-3">
+                                            <button 
+                                                onclick="window.location.reload()" 
+                                                class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                                            >
+                                                Try Again
+                                            </button>
+                                            <p class="text-xs text-zinc-500">
+                                                If this problem persists, please contact support or try a different slide.
+                                            </p>
+                                        </div>
+                                    </div>`,
+                                    durationEstimate: 0
+                                }
+                            }
+                        };
+                    })
+                };
+            }));
         } finally {
             setGeneratingSlideId(null);
         }

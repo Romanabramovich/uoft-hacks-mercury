@@ -111,7 +111,7 @@ export function SlideFrame({
             if (currentChapter.id === "chapter_1" || currentChapter.id.includes("chapter_1")) {
                 return; // Skip auto-generation for chapter 1
             }
-            
+
             // Check if slide content needs to be generated
             const hasContent = currentSlide.variants.text?.content &&
                 !currentSlide.variants.text.content.includes("Loading personalized content");
@@ -351,13 +351,13 @@ export function SlideFrame({
                 </div>
 
                 {/* Webcam Placeholder - Fixed absolute right */}
-                <div className="absolute right-8 top-8 w-64 aspect-video bg-black/50 backdrop-blur-sm border border-white/20 rounded-lg overflow-hidden shadow-2xl z-20 flex flex-col items-center justify-center group cursor-move">
-                    <div className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
-                    <div className="text-zinc-500 text-xs font-medium group-hover:text-white transition-colors">
-                        Webcam Feed
-                    </div>
-                    {/* Simulated user face placeholder */}
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-800 mt-2 border-2 border-white/10" />
+                {/* Webcam Feed - Fixed absolute right */}
+                <div className="absolute right-8 top-8 w-64 aspect-video bg-black fill-black backdrop-blur-sm border border-white/20 rounded-lg overflow-hidden shadow-2xl z-20 flex flex-col items-center justify-center group cursor-move">
+                    <img
+                        src="http://localhost:8000/api/webcam/stream"
+                        alt="Webcam Feed"
+                        className="w-full h-full object-cover transform scale-x-[-1]"
+                    />
                 </div>
             </div>
 

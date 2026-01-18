@@ -5,7 +5,12 @@ if (!process.env.MONGODB_URI) {
 }
 
 const uri = process.env.MONGODB_URI;
-const options = {};
+const options = {
+  // Fail fast in development (5 seconds)
+  serverSelectionTimeoutMS: 5000,
+  // Force IPv4 to avoid common localhost/DNS issues
+  family: 4,
+};
 
 let client: MongoClient;
 let clientPromise: Promise<MongoClient>;

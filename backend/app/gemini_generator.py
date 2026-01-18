@@ -253,9 +253,20 @@ Generate content that is PURELY VISUAL with MINIMAL TEXT:
 **Content Style Requirements (VISUAL-TEXT SPECTRUM Score: {visual_text_score:.2f}):**
 {style_instruction}
 
+**Styling Requirements (CRITICAL for Accessibility):**
+- The content is rendered on a DARK BACKGROUND (deep blue/black).
+- You MUST use Tailwind CSS classes for all styling to ensure visibility.
+- KEY RULES:
+  - For normal text: Use `class="text-zinc-100"` or `class="text-zinc-200"`
+  - For headings: Use `class="text-white font-bold text-xl mb-2"` or `class="text-blue-300 font-bold"`
+  - For keywords/emphasis: Use `class="text-yellow-300 font-semibold"` or `class="text-cyan-300"`
+  - For lists: Use `class="list-disc list-inside space-y-2 text-zinc-200"`
+  - NEVER use black or dark gray text (it will be invisible).
+  - Use `class="bg-white/5 p-4 rounded-lg border border-white/10 my-4"` for callout boxes.
+
 **Output Format:**
-Generate the slide content as HTML that can be rendered directly. Include:
-1. A clear title or heading (use <h2> or <h3> tags)
+Generate the slide content as HTML with inline Tailwind classes. Include:
+1. A clear title or heading (use <h2> or 3> tags with appropriate color classes)
 2. Main content following the style instructions above
 3. For visual elements, use detailed placeholder descriptions like:
    - [DIAGRAM: description of what the diagram shows]
@@ -274,7 +285,7 @@ Generate the slide content as HTML that can be rendered directly. Include:
 **Additional Guidelines:**
 - Ensure content is pedagogically sound and academically rigorous
 - Match the cognitive style indicated by the visual-text score
-- Use proper semantic HTML tags (h2, h3, p, ul, li, div, strong, em, etc.)
+- Use proper semantic HTML tags (h2, h3, p, ul, li, div, strong, em, etc.) WITH Tailwind classes
 - Maintain educational value while adapting to the preferred learning style
 - Do NOT generate code, equations should use standard notation within text
 - Keep paragraphs short (2-4 lines maximum)

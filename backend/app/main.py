@@ -1,20 +1,21 @@
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
-from .database import get_database
-from .learning_identity import LearningIdentityExtractor
-from .gemini_generator import get_slide_generator
-from .understanding_calculator import (
+from database import get_database
+from learning_identity import LearningIdentityExtractor
+from gemini_generator import get_slide_generator
+from understanding_calculator import (
     calculate_understanding_score,
     calculate_expected_time,
     aggregate_focus_scores,
     should_adjust_identity
 )
 import threading
-from .screen_tracker import ScreenTimeTracker
+from screen_tracker import ScreenTimeTracker
 
 # Webcam Tracker Global State
 tracker_instance = None
@@ -82,7 +83,7 @@ class SessionState(BaseModel):
     session_id: str
     user_id: str
     current_slide_id: Optional[str] = None
-    time_on_current_slide: int = 0
+    time_on_current_slide: float = 0.0
     is_focused: bool = True
     focus_percentage: float = 1.0
     confusion_signals: List[str] = []
@@ -123,7 +124,7 @@ class SlideChangeRequest(BaseModel):
     user_id: str
     new_slide_id: str
     previous_slide_id: Optional[str] = None
-    time_on_previous: Optional[int] = None
+    time_on_previous: Optional[float] = None
 
 class QuizResultRequest(BaseModel):
     user_id: str
@@ -1372,6 +1373,21 @@ async def stop_tracker():
         return {"message": "Tracker stopped", "status": "stopped"}
     
     return {"message": "Tracker was not running", "status": "not_running"}
+
+
+@app.get("/api/webcam/stream")
+async def webcam_stream():
+    """
+    Stream the webcam feed with tracking overlay.
+    """
+    global tracker_instance
+    if tracker_instance is None:
+        tracker_instance = ScreenTimeTracker()
+    
+    return StreamingResponse(
+        tracker_instance.get_stream_generator(),
+        media_type="multipart/x-mixed-replace; boundary=frame"
+    )
 
 
 if __name__ == "__main__":
