@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useEventTracker } from './useEventTracker';
 
-type SlideContentType = "diagram-heavy" | "text-heavy" | "video" | "interactive" | "quiz";
+export type SlideContentType = "diagram-heavy" | "text-heavy" | "video" | "interactive" | "quiz";
 
 import { useSession } from '@/components/providers/session-provider';
 import { sessionAPI } from '@/services/api';

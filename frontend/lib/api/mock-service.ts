@@ -24,9 +24,7 @@ const MOCK_USER: User = {
 
 const MOCK_SLIDES: Slide[] = [
     {
-        id: "course_calc_101",
-        slideid: "slide_1",
-        chapterId: "chapter_1",
+        id: "slide_1",
         title: "Introduction to Derivatives",
         variants: {
             // visual: {
@@ -47,7 +45,8 @@ const MOCK_SLIDES: Slide[] = [
                     "<div class='p-4 border-2 border-blue-200 dark:border-blue-800 rounded-lg bg-blue-50 dark:bg-blue-950/30'><h4 class='font-bold text-lg mb-3'>Worked Example 1: Power Rule</h4><p class='mb-2'><strong>Problem:</strong> Find the derivative of f(x) = x³</p><div class='ml-4 space-y-2'><p><strong>Step 1:</strong> Identify the power rule: d/dx[x^n] = nx^(n-1)</p><p><strong>Step 2:</strong> Apply with n = 3</p><p class='font-mono bg-white dark:bg-gray-900 p-2 rounded'>f'(x) = 3x^(3-1) = 3x²</p></div><p class='mt-3 text-sm text-gray-600 dark:text-gray-400'><strong>Interpretation:</strong> At any point x, the function is changing at a rate of 3x².</p></div>",
                 durationEstimate: 60,
             }
-        }
+        },
+        chapterId: "chapter_1"
     },
     {
         id: "course_calc_101",
@@ -154,7 +153,7 @@ const MOCK_SLIDES: Slide[] = [
         },
     },
     {
-        id: "course_calc_101",
+        id: "course_calc_101", // This seems to be the course ID, but used as id here? Assuming consistency with prev schema
         slideid: "slide_1",
         chapterId: "chapter_2",
         title: "The Power Rule",
@@ -165,12 +164,6 @@ const MOCK_SLIDES: Slide[] = [
                     "<div class='prose dark:prose-invert'><h3>The Power Rule</h3><p>For any real number n, if f(x) = x^n, then f'(x) = nx^(n-1).</p><p class='mt-3'>This is one of the most fundamental and frequently used rules in calculus.</p></div>",
                 durationEstimate: 30,
             },
-            // visual: {
-            //     type: "visual",
-            //     content:
-            //         "<div class='p-4 bg-muted rounded-lg'><h3 class='text-lg font-bold mb-2'>Power Rule Visualization</h3><div class='text-center p-6 bg-gradient-to-r from-indigo-100 to-blue-100 dark:from-indigo-900/30 dark:to-blue-900/30 rounded'><p class='text-2xl font-mono mb-4'>x^n → nx^(n-1)</p><div class='mt-4 space-y-2'><p class='text-sm'>The exponent becomes a coefficient</p><p class='text-sm'>The new exponent is one less</p></div></div></div>",
-            //     durationEstimate: 35,
-            // },
             example: {
                 type: "example",
                 content:
@@ -191,12 +184,6 @@ const MOCK_SLIDES: Slide[] = [
                     "<div class='prose dark:prose-invert'><h3>The Product Rule</h3><p>When differentiating the product of two functions, we use the product rule:</p><p class='font-mono bg-gray-100 dark:bg-gray-800 p-3 rounded my-3'>(f·g)' = f'·g + f·g'</p><p>In words: the derivative of the first times the second, plus the first times the derivative of the second.</p><p class='mt-3'><strong>Remember:</strong> You cannot simply multiply the derivatives of each function separately!</p></div>",
                 durationEstimate: 45,
             },
-            // visual: {
-            //     type: "visual",
-            //     content:
-            //         "<div class='p-4 bg-muted rounded-lg'><h3 class='text-lg font-bold mb-2'>Product Rule Visual</h3><div class='bg-gradient-to-br from-rose-100 to-red-100 dark:from-rose-900/30 dark:to-red-900/30 rounded p-6'><div class='text-center space-y-4'><p class='text-xl font-bold'>d/dx[f(x)·g(x)]</p><div class='text-3xl my-4'>=</div><div class='grid grid-cols-2 gap-2'><div class='p-3 bg-white/50 dark:bg-black/20 rounded'><p class='font-mono'>f'(x)·g(x)</p></div><div class='text-2xl flex items-center justify-center'>+</div><div class='p-3 bg-white/50 dark:bg-black/20 rounded col-start-1'><p class='font-mono'>f(x)·g'(x)</p></div></div></div></div></div>",
-            //     durationEstimate: 50,
-            // },
             example: {
                 type: "example",
                 content:
@@ -211,12 +198,6 @@ const MOCK_SLIDES: Slide[] = [
         chapterId: "chapter_2",
         title: "Quotient Rule",
         variants: {
-            // text: {
-            //     type: "text",
-            //     content:
-            //         "<div class='prose dark:prose-invert'><h3>The Quotient Rule</h3><p>When differentiating a quotient of two functions, we use the quotient rule:</p><p class='font-mono bg-gray-100 dark:bg-gray-800 p-3 rounded my-3'>(f/g)' = (f'·g - f·g')/g²</p><p><strong>Memory trick:</strong> 'Low dee high minus high dee low, over the square of what's below'</p><ul class='mt-3'><li>Low = g(x) (denominator)</li><li>High = f(x) (numerator)</li><li>dee = derivative</li></ul></div>",
-            //     durationEstimate: 50,
-            // },
             visual: {
                 type: "visual",
                 content:
@@ -237,12 +218,6 @@ const MOCK_SLIDES: Slide[] = [
         chapterId: "chapter_2",
         title: "Chain Rule",
         variants: {
-            // text: {
-            //     type: "text",
-            //     content:
-            //         "<div class='prose dark:prose-invert'><h3>The Chain Rule</h3><p>The chain rule is used to differentiate composite functions (a function inside another function):</p><p class='font-mono bg-gray-100 dark:bg-gray-800 p-3 rounded my-3'>d/dx[f(g(x))] = f'(g(x))·g'(x)</p><p>In Leibniz notation: dy/dx = (dy/du)·(du/dx)</p><p class='mt-3'><strong>Process:</strong> Differentiate the outer function, leave the inner function alone, then multiply by the derivative of the inner function.</p></div>",
-            //     durationEstimate: 55,
-            // },
             visual: {
                 type: "visual",
                 content:
@@ -263,12 +238,6 @@ const MOCK_SLIDES: Slide[] = [
         chapterId: "chapter_2",
         title: "Combining Differentiation Rules",
         variants: {
-            // text: {
-            //     type: "text",
-            //     content:
-            //         "<div class='prose dark:prose-invert'><h3>Combining Multiple Rules</h3><p>Complex functions often require using multiple differentiation rules together:</p><ul><li><strong>Strategy 1:</strong> Identify which rule applies to the outermost operation</li><li><strong>Strategy 2:</strong> Work from outside to inside, applying rules as needed</li><li><strong>Strategy 3:</strong> Simplify algebraically when possible before differentiating</li></ul><p class='mt-3'>Common combinations: chain rule + power rule, product rule + chain rule, quotient rule + chain rule.</p></div>",
-            //     durationEstimate: 60,
-            // },
             visual: {
                 type: "visual",
                 content:
@@ -283,28 +252,6 @@ const MOCK_SLIDES: Slide[] = [
             },
         },
     },
-
-    // {
-    //     id: "slide_3",
-    //     title: "Knowledge Check: Power Rule",
-    //     variants: {
-    //         text: { // Using text key as default wrapper, but type will be 'quiz'
-    //             type: "quiz",
-    //             content: "Quiz Content",
-    //             quizData: {
-    //                 questionId: "q_power_rule_1",
-    //                 question: "What is the derivative of f(x) = x^3?",
-    //                 options: [
-    //                     { id: "opt_1", text: "3x" },
-    //                     { id: "opt_2", text: "3x^2" },
-    //                     { id: "opt_3", text: "x^2" },
-    //                     { id: "opt_4", text: "2x^3" }
-    //                 ],
-    //                 correctOptionId: "opt_2"
-    //             }
-    //         }
-    //     }
-    // }
 ];
 
 const MOCK_CHAPTERS: Chapter[] = [
