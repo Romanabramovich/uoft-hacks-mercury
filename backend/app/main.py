@@ -7,6 +7,12 @@ from datetime import datetime, timedelta
 from .database import get_database
 from .learning_identity import LearningIdentityExtractor
 from .gemini_generator import get_slide_generator
+from .understanding_calculator import (
+    calculate_understanding_score,
+    calculate_expected_time,
+    aggregate_focus_scores,
+    should_adjust_identity
+)
 
 app = FastAPI(title="Mercury API", version="1.0.0")
 
@@ -70,11 +76,13 @@ class SessionState(BaseModel):
     session_id: str
     user_id: str
     current_slide_id: Optional[str] = None
-    time_on_current_slide: int = 0  # seconds
+    time_on_current_slide: int = 0
     is_focused: bool = True
-    focus_percentage: float = 1.0  # 0.0 to 1.0
+    focus_percentage: float = 1.0
     confusion_signals: List[str] = []
     last_updated: datetime
+    focus_history: List[float] = []
+    slide_metrics: Dict[str, Any] = {}
 
 class FocusUpdate(BaseModel):
     user_id: str
@@ -96,6 +104,27 @@ class LearningIdentityResponse(BaseModel):
     processing_style: str
     confidence_score: float
     last_updated: str
+
+class SessionStartRequest(BaseModel):
+    user_id: str
+    session_id: str
+
+class SessionEndRequest(BaseModel):
+    user_id: str
+    session_id: str
+
+class SlideChangeRequest(BaseModel):
+    user_id: str
+    new_slide_id: str
+    previous_slide_id: Optional[str] = None
+    time_on_previous: Optional[int] = None
+
+class QuizResultRequest(BaseModel):
+    user_id: str
+    slide_id: str
+    quiz_id: str
+    score: float  # 0.0 to 1.0
+    passed: bool
 
 class SlideGenerationRequest(BaseModel):
     topic: str
@@ -265,7 +294,7 @@ async def create_event(event: Event):
 active_sessions = {}
 
 @app.post("/api/session/start")
-async def start_session(user_id: str, session_id: str):
+async def start_session(request: SessionStartRequest):
     """
     Initialize a new learning session for real-time monitoring.
     
@@ -277,35 +306,32 @@ async def start_session(user_id: str, session_id: str):
     
     try:
         session_data = {
-            "session_id": session_id,
-            "user_id": user_id,
+            "session_id": request.session_id,
+            "user_id": request.user_id,
             "started_at": datetime.now(),
             "current_slide_id": None,
             "time_on_current_slide": 0,
             "is_focused": True,
             "focus_percentage": 1.0,
             "confusion_signals": [],
-            "last_updated": datetime.now()
+            "last_updated": datetime.now(),
+            "focus_history": [],
+            "slide_metrics": {}
         }
         
         # Store in cache for real-time access
-        active_sessions[session_id] = session_data
+        active_sessions[request.session_id] = session_data
         
         # Also persist to database
         db.sessions.insert_one(session_data)
         
         return {
-            "session_id": session_id,
+            "session_id": request.session_id,
             "message": "Session started",
             "timestamp": session_data["started_at"]
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error starting session: {str(e)}")
-
-"""
-REPLACE WITH A COUNTER?
-"""
-
 
 @app.post("/api/session/{session_id}/focus")
 async def update_focus_state(session_id: str, focus_update: FocusUpdate):
@@ -320,21 +346,28 @@ async def update_focus_state(session_id: str, focus_update: FocusUpdate):
         raise HTTPException(status_code=503, detail="Database connection unavailable")
     
     try:
-        # Update in-memory cache
+        focus_score = focus_update.focus_score or (1.0 if focus_update.is_focused else 0.0)
+        
         if session_id in active_sessions:
             session = active_sessions[session_id]
             session["is_focused"] = focus_update.is_focused
-            session["focus_percentage"] = focus_update.focus_score or (1.0 if focus_update.is_focused else 0.0)
+            session["focus_percentage"] = focus_score
             session["last_updated"] = focus_update.timestamp or datetime.now()
+            
+            if "focus_history" not in session:
+                session["focus_history"] = []
+            session["focus_history"].append(focus_score)
+            
+            if len(session["focus_history"]) > 1000:
+                session["focus_history"] = session["focus_history"][-500:]
         
-        # Log focus event
         focus_event = {
             "user_id": focus_update.user_id,
             "session_id": session_id,
             "event_type": "focus_change",
             "event_data": {
                 "is_focused": focus_update.is_focused,
-                "focus_score": focus_update.focus_score
+                "focus_score": focus_score
             },
             "timestamp": focus_update.timestamp or datetime.now()
         }
@@ -382,10 +415,7 @@ async def get_session_state(session_id: str):
 @app.post("/api/session/{session_id}/slide-change")
 async def track_slide_change(
     session_id: str,
-    user_id: str,
-    new_slide_id: str,
-    previous_slide_id: Optional[str] = None,
-    time_on_previous: Optional[int] = None
+    request: SlideChangeRequest
 ):
     """
     Track when student moves to a new slide.
@@ -406,13 +436,13 @@ async def track_slide_change(
         
         # Detect "stuck on slide" signal
         STUCK_THRESHOLD = 300  # 5 minutes
-        if time_on_previous and time_on_previous > STUCK_THRESHOLD:
+        if request.time_on_previous and request.time_on_previous > STUCK_THRESHOLD:
             signal = {
                 "signal_type": "stuck_on_slide",
-                "severity": "medium" if time_on_previous < 600 else "high",
+                "severity": "medium" if request.time_on_previous < 600 else "high",
                 "metadata": {
-                    "slide_id": previous_slide_id,
-                    "time_spent": time_on_previous
+                    "slide_id": request.previous_slide_id,
+                    "time_spent": request.time_on_previous
                 },
                 "detected_at": datetime.now()
             }
@@ -420,7 +450,7 @@ async def track_slide_change(
             
             # Log confusion signal
             db.confusion_signals.insert_one({
-                "user_id": user_id,
+                "user_id": request.user_id,
                 "session_id": session_id,
                 **signal
             })
@@ -428,27 +458,27 @@ async def track_slide_change(
         # Update session state
         if session_id in active_sessions:
             session = active_sessions[session_id]
-            session["current_slide_id"] = new_slide_id
+            session["current_slide_id"] = request.new_slide_id
             session["time_on_current_slide"] = 0
             session["confusion_signals"].extend(confusion_signals)
             session["last_updated"] = datetime.now()
         
         # Log slide change event
         db.events.insert_one({
-            "user_id": user_id,
+            "user_id": request.user_id,
             "session_id": session_id,
             "event_type": "slide_change",
             "event_data": {
-                "from_slide": previous_slide_id,
-                "to_slide": new_slide_id,
-                "time_on_previous": time_on_previous
+                "from_slide": request.previous_slide_id,
+                "to_slide": request.new_slide_id,
+                "time_on_previous": request.time_on_previous
             },
             "timestamp": datetime.now()
         })
         
         # ADJUST LEARNING IDENTITY if confusion detected
         if confusion_signals:
-            user = db.users.find_one({"user_id": user_id})
+            user = db.users.find_one({"user_id": request.user_id})
             if user and "learning_identity" in user:
                 identity = user["learning_identity"]
                 adjusted_identity = LearningIdentityExtractor.adjust_identity_for_confusion(
@@ -457,7 +487,7 @@ async def track_slide_change(
                 
                 # Update in database
                 db.users.update_one(
-                    {"user_id": user_id},
+                    {"user_id": request.user_id},
                     {"$set": {"learning_identity": adjusted_identity}}
                 )
         
@@ -474,11 +504,7 @@ async def track_slide_change(
 @app.post("/api/session/{session_id}/quiz-result")
 async def track_quiz_result(
     session_id: str,
-    user_id: str,
-    slide_id: str,
-    quiz_id: str,
-    score: float,  # 0.0 to 1.0
-    passed: bool
+    request: QuizResultRequest
 ):
     """
     Track quiz completion and detect confusion if failed.
@@ -498,15 +524,15 @@ async def track_quiz_result(
         confusion_signals = []
         
         # Detect quiz failure signal
-        if not passed or score < 0.6:
-            severity = "low" if score >= 0.4 else "medium" if score >= 0.2 else "high"
+        if not request.passed or request.score < 0.6:
+            severity = "low" if request.score >= 0.4 else "medium" if request.score >= 0.2 else "high"
             signal = {
                 "signal_type": "quiz_failed",
                 "severity": severity,
                 "metadata": {
-                    "slide_id": slide_id,
-                    "quiz_id": quiz_id,
-                    "score": score
+                    "slide_id": request.slide_id,
+                    "quiz_id": request.quiz_id,
+                    "score": request.score
                 },
                 "detected_at": datetime.now()
             }
@@ -514,7 +540,7 @@ async def track_quiz_result(
             
             # Log confusion signal
             db.confusion_signals.insert_one({
-                "user_id": user_id,
+                "user_id": request.user_id,
                 "session_id": session_id,
                 **signal
             })
@@ -527,21 +553,21 @@ async def track_quiz_result(
         
         # Log quiz event
         db.events.insert_one({
-            "user_id": user_id,
+            "user_id": request.user_id,
             "session_id": session_id,
             "event_type": "quiz_completed",
             "event_data": {
-                "slide_id": slide_id,
-                "quiz_id": quiz_id,
-                "score": score,
-                "passed": passed
+                "slide_id": request.slide_id,
+                "quiz_id": request.quiz_id,
+                "score": request.score,
+                "passed": request.passed
             },
             "timestamp": datetime.now()
         })
         
         # ADJUST LEARNING IDENTITY if confusion detected
         if confusion_signals:
-            user = db.users.find_one({"user_id": user_id})
+            user = db.users.find_one({"user_id": request.user_id})
             if user and "learning_identity" in user:
                 identity = user["learning_identity"]
                 adjusted_identity = LearningIdentityExtractor.adjust_identity_for_confusion(
@@ -550,13 +576,13 @@ async def track_quiz_result(
                 
                 # Update in database
                 db.users.update_one(
-                    {"user_id": user_id},
+                    {"user_id": request.user_id},
                     {"$set": {"learning_identity": adjusted_identity}}
                 )
         
         return {
             "message": "Quiz result tracked",
-            "passed": passed,
+            "passed": request.passed,
             "confusion_signals_detected": len(confusion_signals),
             "signals": confusion_signals,
             "identity_adjusted": len(confusion_signals) > 0
@@ -607,7 +633,7 @@ async def get_confusion_signals(
 
 
 @app.post("/api/session/{session_id}/end")
-async def end_session(session_id: str, user_id: str):
+async def end_session(session_id: str, request: SessionEndRequest):
     """
     End a learning session and clean up.
     
@@ -823,6 +849,102 @@ async def health_check():
         "active_sessions": len(active_sessions),
         "timestamp": datetime.now().isoformat()
     }
+
+
+@app.post("/api/lessons/{lesson_id}/complete")
+async def complete_lesson(
+    lesson_id: str,
+    user_id: str,
+    session_id: str
+):
+    """
+    Mark a lesson as complete and trigger identity extraction if it's the first lesson.
+    After first lesson, pre-generate slides for lesson 2 based on extracted profile.
+    
+    - lesson_id: The lesson being completed
+    - user_id: The user completing the lesson
+    - session_id: Current session identifier
+    """
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database connection unavailable")
+    
+    try:
+        # Mark lesson as completed
+        completion_doc = {
+            "user_id": user_id,
+            "lesson_id": lesson_id,
+            "session_id": session_id,
+            "completed_at": datetime.now()
+        }
+        db.lesson_completions.insert_one(completion_doc)
+        
+        # Check if this is the first lesson (baseline)
+        lesson = db.lessons.find_one({"lesson_id": lesson_id})
+        
+        if not lesson:
+            # If lesson doesn't exist in DB, check if it's marked as first in course structure
+            # For now, assume lesson_1 or chapter_1 naming indicates baseline
+            is_baseline = "lesson_1" in lesson_id or "chap_1" in lesson_id or lesson_id.endswith("_1")
+        else:
+            is_baseline = lesson.get("is_baseline", False)
+        
+        profile_generated = False
+        slides_generated = 0
+        
+        if is_baseline:
+            # Extract learning identity from first lesson performance
+            identity = await extract_learning_identity(user_id, lookback_days=1)
+            profile_generated = True
+            
+            # Pre-generate slides for lesson 2
+            # Find lesson 2 in the database
+            lesson_2 = db.lessons.find_one({"course_id": lesson.get("course_id") if lesson else None, "order": 2})
+            
+            if lesson_2 and "slide_topics" in lesson_2:
+                generator = get_slide_generator()
+                
+                for slide_topic in lesson_2["slide_topics"]:
+                    try:
+                        # Generate slide content based on user's profile
+                        result = generator.generate_slide_content(
+                            topic=slide_topic.get("title", ""),
+                            learning_objectives=slide_topic.get("objectives", ""),
+                            visual_text_score=identity.visual_text_score,
+                            context=slide_topic.get("context", "")
+                        )
+                        
+                        # Store generated slide in database
+                        generated_slide = {
+                            "user_id": user_id,
+                            "lesson_id": lesson_2["lesson_id"],
+                            "slide_id": f"{lesson_2['lesson_id']}_slide_{slides_generated + 1}",
+                            "topic": slide_topic.get("title", ""),
+                            "content": result["content"],
+                            "content_type": result["content_type"],
+                            "visual_text_score": result["visual_text_score"],
+                            "video_url": result.get("video_url"),
+                            "thumbnail_url": result.get("thumbnail_url"),
+                            "metadata": result.get("metadata", {}),
+                            "generated_at": datetime.now()
+                        }
+                        db.generated_slides.insert_one(generated_slide)
+                        slides_generated += 1
+                        
+                    except Exception as e:
+                        print(f"Failed to generate slide for topic {slide_topic.get('title', '')}: {str(e)}")
+                        continue
+        
+        return {
+            "message": "Lesson completed successfully",
+            "lesson_id": lesson_id,
+            "is_baseline": is_baseline,
+            "profile_generated": profile_generated,
+            "slides_generated": slides_generated,
+            "timestamp": datetime.now()
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error completing lesson: {str(e)}")
 
 
 @app.get("/")
