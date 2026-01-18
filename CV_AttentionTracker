@@ -3,6 +3,9 @@ from tkinter import ttk, font
 import threading
 import time
 import random
+import subprocess
+import sys
+import os
 from screen_tracker import ScreenTimeTracker
 
 class AdaptiveLearningApp:
@@ -26,12 +29,32 @@ class AdaptiveLearningApp:
         # Start the tracker (begin capturing and analyzing)
         self.tracker.start_tracking()
         
+        # Start the webcam display in a separate process (avoids GUI threading conflicts)
+        self.start_webcam_process()
+        
         # Start the Sensor in a background thread (headless mode - no GUI window)
         self.sensor_thread = threading.Thread(target=self.run_sensor_loop, daemon=True)
         self.sensor_thread.start()
 
         # Start the Control Loop (The "AI" Brain) - faster update rate
         self.root.after(500, self.control_loop)
+
+    def start_webcam_process(self):
+        """Start the webcam display in a separate process."""
+        try:
+            # Get the Python executable path
+            python_exe = sys.executable
+            
+            # Start screen_tracker.py as a subprocess
+            self.webcam_process = subprocess.Popen([
+                python_exe, 
+                os.path.join(os.path.dirname(__file__), 'screen_tracker.py')
+            ])
+            
+            print("Webcam display process started")
+        except Exception as e:
+            print(f"Failed to start webcam process: {e}")
+            self.webcam_process = None
 
     def setup_ui(self):
         # Header
@@ -231,8 +254,16 @@ class AdaptiveLearningApp:
 
     def on_close(self):
         self.is_running = False
+        # Terminate the webcam subprocess
+        if hasattr(self, 'webcam_process') and self.webcam_process:
+            try:
+                self.webcam_process.terminate()
+                self.webcam_process.wait(timeout=2)
+                print("Webcam process terminated")
+            except subprocess.TimeoutExpired:
+                self.webcam_process.kill()
+                print("Webcam process force killed")
         # The tracker thread is daemon, so it will die when main dies
-        # But we should try to close 'q' or just kill the app
         self.root.destroy()
 
 if __name__ == "__main__":
