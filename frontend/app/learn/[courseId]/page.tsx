@@ -1,16 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { SlideFrame } from "@/components/slide-viewer/slide-frame";
 import { apiClient } from "@/lib/api/client";
 import { Course } from "@/lib/api/types";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import React from "react";
 
-export default function LearnPage() {
+function LearnPageContent() {
     const params = useParams();
+    const searchParams = useSearchParams();
     const courseId = params.courseId as string;
+    const chapterId = searchParams.get("chapterId") || undefined;
+
     const [course, setCourse] = useState<Course | null>(null);
     const router = useRouter();
 
@@ -21,6 +24,21 @@ export default function LearnPage() {
             apiClient.getCourse(courseId).then(setCourse);
         }
     }, [courseId]);
+
+    const handleChapterComplete = (completedChapterId: string) => {
+        // Mock persistence of progress
+        // Get existing progress
+        const storageKey = `course_progress_${courseId}`;
+        const existingProgress = JSON.parse(localStorage.getItem(storageKey) || "[]");
+
+        if (!existingProgress.includes(completedChapterId)) {
+            const newProgress = [...existingProgress, completedChapterId];
+            localStorage.setItem(storageKey, JSON.stringify(newProgress));
+        }
+
+        // Return to course page
+        router.push(`/dashboard/courses/${courseId}`);
+    };
 
     if (!course) {
         return (
@@ -35,7 +53,17 @@ export default function LearnPage() {
         <SlideFrame
             chapters={course.chapters}
             courseTitle={course.title}
-            onExit={() => router.push("/dashboard")}
+            initialChapterId={chapterId}
+            onExit={() => router.push(`/dashboard/courses/${courseId}`)}
+            onChapterComplete={handleChapterComplete}
         />
+    );
+}
+
+export default function LearnPage() {
+    return (
+        <Suspense fallback={<div className="h-screen w-full flex items-center justify-center bg-[#0b0f19] text-white">Loading...</div>}>
+            <LearnPageContent />
+        </Suspense>
     );
 }

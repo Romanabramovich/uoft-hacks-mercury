@@ -14,99 +14,76 @@ import { useFocusTracking } from "@/hooks/analytics/useFocusTracking";
 interface SlideFrameProps {
     chapters: Chapter[];
     courseTitle: string;
+    initialChapterId?: string;
     onExit: () => void;
+    onChapterComplete?: (chapterId: string) => void;
 }
 
-export function SlideFrame({ chapters, courseTitle, onExit }: SlideFrameProps) {
+export function SlideFrame({ chapters, courseTitle, initialChapterId, onExit, onChapterComplete }: SlideFrameProps) {
     // Initialize analytics
     useFocusTracking();
-    const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
-    const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const [userPreference, setUserPreference] = useState<LearningStyle>("text");
-    
-    console.log("Chapters received in SlideFrame:", chapters);
-    const [currentChapter, setCurrentChapter] = useState<Chapter>(chapters[0]);
-    const [slides, setSlides] = useState<Slide[]>(chapters[0]?.slides || []);
-    const [currentSlide, setCurrentSlide] = useState<Slide | null>(slides.length > 0 ? slides[0] : null);
-    // const [activeVariant, setActiveVariant] = useState<SlideVariant | null>(slides.length > 0 ? (slides[0].variants.text || Object.values(slides[0].variants)[0]) : null);
-    
-    const [activeVariant, setActiveVariant] = useState<SlideVariant | null>(() => {
-        if (slides.length > 0) {
-            return slides[0].variants[userPreference] || slides[0].variants.text || Object.values(slides[0].variants)[0];
-        }
-        return null;
-    });
 
+    // Core navigation state
+    const [currentChapterIndex, setCurrentChapterIndex] = useState(() => {
+        if (initialChapterId) {
+            const idx = chapters.findIndex(c => c.id === initialChapterId);
+            return idx !== -1 ? idx : 0;
+        }
+        return 0;
+    });
+    const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+
+    // User preference state
+    const [userPreference, setUserPreference] = useState<LearningStyle>("text");
+    const [activeVariant, setActiveVariant] = useState<SlideVariant | null>(null);
     const [showConfetti, setShowConfetti] = useState(false);
 
-    // Derived state
-    // const currentChapter = chapters[currentChapterIndex];
-    // const currentSlide = currentChapter?.slides[currentSlideIndex];
+    console.log("Chapters received in SlideFrame:", chapters);
 
-    // Safety check if no data
-    // WE CANNOT RETURN NULL HERE because it breaks hook ordering
-    // if (!currentChapter || !currentSlide) return null;
+    // Derived state - simpler and guaranteed to be in sync
+    const currentChapter = chapters[currentChapterIndex];
+    const slides = currentChapter?.slides || [];
+    const currentSlide: Slide | null = slides[currentSlideIndex] || null;
 
-    // const [activeVariant, setActiveVariant] = useState<SlideVariant | null>(
-    //     currentSlide ? (currentSlide.variants.text || Object.values(currentSlide.variants)[0]) : null
-    // );
-
-
-    // useEffect(() => {
-    //     if (!currentSlide) {
-    //         setActiveVariant(null);
-    //         return;
-    //     }
-    //     // Reset variant when slide changes
-    //     const vars = currentSlide.variants;
-    //     setActiveVariant(vars.text || Object.values(vars)[0]);
-    // }, [currentSlide]);
-
-    useEffect(() => { // ayushi's implementation
-        const chapter = chapters[currentChapterIndex];
-        if (chapter) {
-            setCurrentChapter(chapter);
-            setSlides(chapter.slides);
-            setCurrentIndex(0); // Reset to first slide when changing chapters
-        }
-    }, [currentChapterIndex, chapters]);
-
+    // Effect to update activeVariant when slide changes or preference changes
     useEffect(() => {
-        if (slides.length > 0 && currentIndex < slides.length) {
-            setCurrentSlide(slides[currentIndex]);
-            
-            const vars = slides[currentIndex].variants;
-            
-            const preferredVariant = vars[userPreference] || vars.text || Object.values(vars)[0];
+        if (currentSlide) {
+            const vars = currentSlide.variants;
+            // Try to find variant matching preference, fallback to text, then visual, then any
+            const preferredVariant = vars[userPreference] || vars.text || vars.visual || Object.values(vars)[0];
             setActiveVariant(preferredVariant);
         } else {
-            setCurrentSlide(null);
             setActiveVariant(null);
         }
-    }, [currentIndex, slides, userPreference]);
+    }, [currentSlide, userPreference]);
 
     const handleChapterChange = (value: string) => {
         const index = chapters.findIndex(ch => ch.id === value);
         if (index !== -1) {
             setCurrentChapterIndex(index);
+            setCurrentSlideIndex(0); // Reset to first slide of new chapter
         }
     };
 
     const handleNext = () => {
-        const isLastSlideInChapter = currentSlideIndex === currentChapter.slides.length - 1;
-        const isLastChapter = currentChapterIndex === chapters.length - 1;
+        if (!currentChapter) return;
+
+        const isLastSlideInChapter = currentSlideIndex === slides.length - 1;
 
         if (!isLastSlideInChapter) {
             // Next slide in same chapter
             setCurrentSlideIndex(prev => prev + 1);
-        } else if (!isLastChapter) {
-            // Next chapter, first slide
-            setCurrentChapterIndex(prev => prev + 1);
-            setCurrentSlideIndex(0);
         } else {
-            // End of course
+            // End of chapter
             setShowConfetti(true);
+        }
+    };
+
+    const handleFinish = () => {
+        if (onChapterComplete && currentChapter) {
+            onChapterComplete(currentChapter.id);
+        } else {
+            onExit();
         }
     };
 
@@ -114,37 +91,26 @@ export function SlideFrame({ chapters, courseTitle, onExit }: SlideFrameProps) {
         if (currentSlideIndex > 0) {
             // Previous slide in same chapter
             setCurrentSlideIndex(prev => prev - 1);
-        } else if (currentChapterIndex > 0) {
-            // Previous chapter, last slide
-            const prevChapter = chapters[currentChapterIndex - 1];
-            setCurrentChapterIndex(prev => prev - 1);
-            setCurrentSlideIndex(prevChapter.slides.length - 1);
         }
+        // Removed chapter backtracking logic to keep it scoped to single chapter
     };
 
     // Simulation of adaptation trigger
     const triggerAdaptation = (type: LearningStyle | "text" | "example") => {
         if (type === "visual" || type === "text") {
-            setUserPreference(type);
+            setUserPreference(type as LearningStyle);
         }
-        
+
         if (currentSlide?.variants[type]) {
             setActiveVariant(currentSlide.variants[type]);
         }
     };
 
     const totalSlides = chapters.reduce((acc, chap) => acc + chap.slides.length, 0);
-    // Calculate global progress index logic is a bit complex with variable chapter lengths
-    // Simplified progress: just mapping completed slides
-    const completedSlides = chapters.slice(0, currentChapterIndex).reduce((acc, chap) => acc + chap.slides.length, 0) + currentSlideIndex + 1;
-    const progress = (completedSlides / totalSlides) * 100;
-
-    // if (!currentChapter || !currentSlide || !activeVariant) {
-    //     return <div className="flex h-screen items-center justify-center bg-[#0b0f19] text-white">Loading...</div>;
-    // }
-
-    
-    //const progress = slides.length > 0 ? ((currentIndex + 1) / slides.length) * 100 : 0;
+    // Calculate global progress
+    const previousChaptersSlides = chapters.slice(0, currentChapterIndex).reduce((acc, chap) => acc + chap.slides.length, 0);
+    const completedSlides = previousChaptersSlides + currentSlideIndex + 1;
+    const progress = totalSlides > 0 ? (completedSlides / totalSlides) * 100 : 0;
 
     if (!currentSlide || !activeVariant) {
         return (
@@ -168,7 +134,7 @@ export function SlideFrame({ chapters, courseTitle, onExit }: SlideFrameProps) {
                     <div>
                         <h2 className="font-semibold">{courseTitle}</h2>
                         <p className="text-xs text-zinc-400">
-                            {currentChapter.title} • Slide {currentSlideIndex + 1}/{currentChapter.slides.length}
+                            {currentChapter.title} • Slide {currentSlideIndex + 1}/{slides.length}
                         </p>
                     </div>
                 </div>
@@ -178,7 +144,7 @@ export function SlideFrame({ chapters, courseTitle, onExit }: SlideFrameProps) {
                             <SelectValue placeholder="Select Chapter" />
                         </SelectTrigger>
                         <SelectContent className="bg-[#111827] border-zinc-700">
-                            {chapters.map((chapter, index) => (
+                            {chapters.map((chapter) => (
                                 <SelectItem key={chapter.id} value={chapter.id} className="text-zinc-300">
                                     {chapter.title}
                                 </SelectItem>
@@ -187,27 +153,27 @@ export function SlideFrame({ chapters, courseTitle, onExit }: SlideFrameProps) {
                     </Select>
 
                     <div className="hidden md:flex gap-2">
-                        <Button 
-                            variant={activeVariant.type === "visual" ? "default" : "outline"} 
-                            size="sm" 
-                            onClick={() => triggerAdaptation("visual")} 
+                        <Button
+                            variant={activeVariant.type === "visual" ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => triggerAdaptation("visual")}
                             className="text-xs border-zinc-700"
                         >
                             Visual
                         </Button>
-                        <Button 
-                            variant={activeVariant.type === "text" ? "default" : "outline"} 
-                            size="sm" 
-                            onClick={() => triggerAdaptation("text")} 
+                        <Button
+                            variant={activeVariant.type === "text" ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => triggerAdaptation("text")}
                             className="text-xs border-zinc-700"
                         >
                             Text
                         </Button>
-                        
-                        <Button 
-                            variant={activeVariant.type === "example" ? "default" : "outline"} 
-                            size="sm" 
-                            onClick={() => triggerAdaptation("example")} 
+
+                        <Button
+                            variant={activeVariant.type === "example" ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => triggerAdaptation("example")}
                             className="text-xs border-zinc-700"
                         >
                             Example
@@ -227,7 +193,7 @@ export function SlideFrame({ chapters, courseTitle, onExit }: SlideFrameProps) {
                     />
                 </div>
 
-                {/* Webcam Placeholder - Fixed absolute right (not aligned to screen as requested) */}
+                {/* Webcam Placeholder - Fixed absolute right */}
                 <div className="absolute right-8 top-8 w-64 aspect-video bg-black/50 backdrop-blur-sm border border-white/20 rounded-lg overflow-hidden shadow-2xl z-20 flex flex-col items-center justify-center group cursor-move">
                     <div className="absolute top-2 right-2 w-3 h-3 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
                     <div className="text-zinc-500 text-xs font-medium group-hover:text-white transition-colors">
@@ -243,7 +209,7 @@ export function SlideFrame({ chapters, courseTitle, onExit }: SlideFrameProps) {
                 <Button
                     variant="ghost"
                     onClick={handlePrev}
-                    disabled={currentChapterIndex === 0 && currentSlideIndex === 0}
+                    disabled={currentSlideIndex === 0}
                     className="text-zinc-400 hover:text-white"
                 >
                     <ChevronLeft className="w-5 h-5 mr-2" />
@@ -254,10 +220,10 @@ export function SlideFrame({ chapters, courseTitle, onExit }: SlideFrameProps) {
                     onClick={handleNext}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-8"
                 >
-                    {(currentChapterIndex === chapters.length - 1 && currentSlideIndex === currentChapter.slides.length - 1)
+                    {currentSlideIndex === slides.length - 1
                         ? "Finish Lesson"
                         : "Next Slide"}
-                    {!(currentChapterIndex === chapters.length - 1 && currentSlideIndex === currentChapter.slides.length - 1) && <ChevronRight className="w-5 h-5 ml-2" />}
+                    {currentSlideIndex !== slides.length - 1 && <ChevronRight className="w-5 h-5 ml-2" />}
                 </Button>
             </div>
 
@@ -266,7 +232,7 @@ export function SlideFrame({ chapters, courseTitle, onExit }: SlideFrameProps) {
                     <div className="text-center space-y-4 animate-in zoom-in duration-300">
                         <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-orange-500">Chapter Complete!</h1>
                         <p className="text-zinc-400">You've mastered this chapter.</p>
-                        <Button onClick={() => setShowConfetti(false)} className="mt-4 bg-white text-black hover:bg-gray-200">Continue</Button>
+                        <Button onClick={handleFinish} className="mt-4 bg-white text-black hover:bg-gray-200">Return to Course</Button>
                     </div>
                 </div>
             )}
