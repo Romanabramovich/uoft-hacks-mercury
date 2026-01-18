@@ -12,7 +12,7 @@ export default function LandingPage() {
       <div className="relative z-10 text-center space-y-8 max-w-3xl">
         <div className="space-y-4">
           <h1 className="text-5xl md:text-7xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-gray-400">
-            Education that adapt's to <span className="text-indigo-400">you</span>.
+            Education that adapts to <span className="text-indigo-400">you</span>.
           </h1>
           <p className="text-xl text-gray-400 max-w-2xl mx-auto">
             Mercury flips the classroom UI in real-time. Visual learners see diagrams, text learners see summaries.

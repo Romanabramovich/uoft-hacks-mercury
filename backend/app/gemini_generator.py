@@ -55,24 +55,31 @@ class SlideGenerator:
         """
         # Determine output format based on visual_text_score
         # High visual scores (>0.6) should generate Manim animations
-        should_use_manim = visual_text_score > 0.6 if force_format is None else force_format == "manim"
+        # should_use_manim = visual_text_score > 0.6 if force_format is None else force_format == "manim"
         
-        if should_use_manim:
-            return self._generate_manim_animation(
-                topic=topic,
-                learning_objectives=learning_objectives,
-                visual_text_score=visual_text_score,
-                context=context,
-                previous_content=previous_content
-            )
-        else:
-            return self._generate_html_content(
-                topic=topic,
-                learning_objectives=learning_objectives,
-                visual_text_score=visual_text_score,
-                context=context,
-                previous_content=previous_content
-            )
+        # if should_use_manim:
+        #     return self._generate_manim_animation(
+        #         topic=topic,
+        #         learning_objectives=learning_objectives,
+        #         visual_text_score=visual_text_score,
+        #         context=context,
+        #         previous_content=previous_content
+        #     )
+        # else:
+            # return self._generate_html_content(
+            #     topic=topic,
+            #     learning_objectives=learning_objectives,
+            #     visual_text_score=visual_text_score,
+            #     context=context,
+            #     previous_content=previous_content
+            # )
+        return self._generate_html_content(
+            topic=topic,
+            learning_objectives=learning_objectives,
+            visual_text_score=visual_text_score,
+            context=context,
+            previous_content=previous_content
+        )
     
     def _generate_html_content(
         self,
@@ -210,7 +217,8 @@ Generate content that is TEXT-HEAVY and DEFINITION-FOCUSED:
 - Focus on precise vocabulary and terminology
 - Use numbered lists for step-by-step processes
 """
-        elif visual_text_score < 0.5:
+        # elif visual_text_score < 0.5:
+        else:
             style_instruction = """
 Generate content with a BALANCED MIX of text and visual descriptions:
 - Start with a concise definition
@@ -219,25 +227,25 @@ Generate content with a BALANCED MIX of text and visual descriptions:
 - Add a worked example with step-by-step text
 - Balance explanation with visual references
 """
-        elif visual_text_score < 0.7:
-            style_instruction = """
-Generate content that is VISUAL-HEAVY with supporting text:
-- Lead with diagram/flowchart descriptions (describe the visual in detail)
-- Use minimal text to label and annotate
-- Describe concept maps showing relationships
-- Include infographic-style layouts (describe the visual structure)
-- Keep textual explanations brief and to-the-point
-"""
-        else:
-            style_instruction = """
-Generate content that is PURELY VISUAL with MINIMAL TEXT:
-- Focus entirely on describing visual representations
-- Create detailed descriptions of diagrams, flowcharts, and concept maps
-- Use visual metaphors and analogies
-- Minimal explanatory text (only essential labels)
-- Describe color-coded elements and visual hierarchies
-- Think infographic-style with icons and visual symbols
-"""
+#         elif visual_text_score < 0.7:
+#             style_instruction = """
+# Generate content that is VISUAL-HEAVY with supporting text:
+# - Lead with diagram/flowchart descriptions (describe the visual in detail)
+# - Use minimal text to label and annotate
+# - Describe concept maps showing relationships
+# - Include infographic-style layouts (describe the visual structure)
+# - Keep textual explanations brief and to-the-point
+# """
+#         else:
+#             style_instruction = """
+# Generate content that is PURELY VISUAL with MINIMAL TEXT:
+# - Focus entirely on describing visual representations
+# - Create detailed descriptions of diagrams, flowcharts, and concept maps
+# - Use visual metaphors and analogies
+# - Minimal explanatory text (only essential labels)
+# - Describe color-coded elements and visual hierarchies
+# - Think infographic-style with icons and visual symbols
+# """
         
         # Build the full prompt
         prompt = f"""You are an expert educational content generator. Create lecture slide content for a lecture.
