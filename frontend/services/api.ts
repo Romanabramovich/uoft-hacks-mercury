@@ -16,7 +16,8 @@ interface FetchOptions extends RequestInit {
 async function fetchWithTimeout(resource: string, options: FetchOptions = {}): Promise<Response> {
     const { timeout = 10000, ...fetchOptions } = options;
     const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
+    const timeoutError = new DOMException('Request timeout', 'TimeoutError');
+    const id = setTimeout(() => controller.abort(timeoutError), timeout);
 
     try {
         const response = await fetch(resource, {

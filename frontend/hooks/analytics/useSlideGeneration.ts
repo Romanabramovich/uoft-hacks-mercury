@@ -40,6 +40,9 @@ export function useSlideGeneration({ courseId, userId, enableGeneration = true }
 
                 const structure = await slidesAPI.getCourseStructure(courseId);
 
+                const mockService = new MockService();
+                const mockCourse = await mockService.getCourse(courseId);
+                const mockChapter1 = mockCourse.chapters.find(ch => ch.id === "chapter_1");
                 // Transform backend structure to frontend Chapter/Slide format
                 const transformedChapters: Chapter[] = structure.chapters.map(chapter => {
                     // Use hardcoded HTML for chapter_1
