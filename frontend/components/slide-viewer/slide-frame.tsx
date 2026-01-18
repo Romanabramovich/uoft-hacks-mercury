@@ -11,6 +11,8 @@ import Link from "next/link";
 import { DynamicContent } from "@/components/slide-viewer/dynamic-content";
 import { useFocusTracking } from "@/hooks/analytics/useFocusTracking";
 import { useSlideGeneration } from "@/hooks/analytics/useSlideGeneration";
+import { useSlideTracking, SlideContentType } from "@/hooks/analytics/useSlideTracking";
+import { useSession } from "@/components/providers/session-provider";
 import { slidesAPI } from "@/services/api";
 
 interface SlideFrameProps {
@@ -24,23 +26,31 @@ interface SlideFrameProps {
     enableDynamicGeneration?: boolean; // Enable backend LLM generation
 }
 
-export function SlideFrame({ 
-    chapters: initialChapters, 
-    courseTitle, 
+export function SlideFrame({
+    chapters: initialChapters,
+    courseTitle,
     courseId,
     userId,
-    initialChapterId, 
-    onExit, 
+    initialChapterId,
+    onExit,
     onChapterComplete,
     enableDynamicGeneration = false
 }: SlideFrameProps) {
     // Initialize analytics
     useFocusTracking();
+    const { setLastSlide } = useSession();
+
+    // Reset slide tracking on unmount (to avoid counting dashboard time)
+    useEffect(() => {
+        return () => {
+            setLastSlide(null);
+        };
+    }, [setLastSlide]);
 
     // Use slide generation hook
-    const { 
-        chapters: generatedChapters, 
-        loading: loadingStructure, 
+    const {
+        chapters: generatedChapters,
+        loading: loadingStructure,
         error: structureError,
         generateSlideContent,
         isGenerating,
@@ -77,13 +87,28 @@ export function SlideFrame({
     const slides = currentChapter?.slides || [];
     const currentSlide: Slide | null = slides[currentSlideIndex] || null;
 
+    // Determine content type for analytics
+    const getContentType = (type: string | undefined): SlideContentType => {
+        switch (type) {
+            case "visual": return "diagram-heavy";
+            case "example": return "interactive";
+            case "text": return "text-heavy";
+            default: return "text-heavy";
+        }
+    };
+
+    useSlideTracking(
+        currentSlide?.id || "",
+        getContentType(activeVariant?.type)
+    );
+
     // Generate content when navigating to a new slide (if dynamic generation enabled)
     useEffect(() => {
         if (enableDynamicGeneration && currentSlide && !isGenerating) {
             // Check if slide content needs to be generated
-            const hasContent = currentSlide.variants.text?.content && 
-                              !currentSlide.variants.text.content.includes("Loading personalized content");
-            
+            const hasContent = currentSlide.variants.text?.content &&
+                !currentSlide.variants.text.content.includes("Loading personalized content");
+
             if (!hasContent) {
                 console.log(`Auto-generating content for slide: ${currentSlide.title}`);
                 generateSlideContent(currentChapterIndex, currentSlideIndex);
@@ -142,7 +167,7 @@ export function SlideFrame({
                 console.log(`  - Profile generated: ${result.profile_generated}`);
                 console.log(`  - Next chapter: ${result.next_chapter_id}`);
                 console.log(`  - Pre-generated ${result.slides_generated}/${result.slides_total} slides`);
-                
+
                 if (result.slides_generated > 0) {
                     console.log(`🎉 Next chapter personalized with ${result.slides_generated} slides!`);
                 }
@@ -302,7 +327,7 @@ export function SlideFrame({
             {/* Main Content Area */}
             <div className="flex-1 flex overflow-hidden relative">
                 <div className="flex-1 relative flex items-center justify-center p-8 md:p-16">
-                    {isGenerating && generatingSlideId === currentSlide.slideid ? (
+                    {isGenerating && generatingSlideId === currentSlide.id ? (
                         <div className="text-center">
                             <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500 mb-4 mx-auto" />
                             <p className="text-zinc-400">Generating personalized content...</p>

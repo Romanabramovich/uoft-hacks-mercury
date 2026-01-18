@@ -9,24 +9,18 @@ export function useFocusTracking() {
 
     // In a real implementation, this would connect to a local CV model or MediaPipe
     // For now, we simulate focus metrics for the backend heartbeat
+    // Connect to the backend webcam tracker
     useEffect(() => {
         if (!sessionId || !isSessionActive) return;
 
-        const intervalId = setInterval(() => {
-            // Mock high focus
-            const isFocused = Math.random() > 0.1; // 90% chance focused
-            const focusScore = isFocused ? 0.8 + Math.random() * 0.2 : Math.random() * 0.5;
+        // Start the webcam tracker when session is active
+        sessionAPI.startTracker();
 
-            sessionAPI.trackFocus(
-                sessionId,
-                userId,
-                isFocused,
-                Number(focusScore.toFixed(2))
-            ).catch(console.error);
-        }, 10000); // Every 10 seconds
-
-        return () => clearInterval(intervalId);
-    }, [sessionId, userId, isSessionActive]);
+        return () => {
+            // Stop the webcam tracker when session ends or component unmounts
+            sessionAPI.stopTracker();
+        };
+    }, [sessionId, isSessionActive]);
 
     return {};
 }

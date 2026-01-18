@@ -7,7 +7,7 @@ import { Slide, Chapter, SlideVariant } from "@/lib/api/types";
 interface UseSlideGenerationOptions {
     courseId: string;
     userId: string;
-    enableGeneration?: boolean; 
+    enableGeneration?: boolean;
 }
 
 interface GeneratedSlideCache {
@@ -36,9 +36,9 @@ export function useSlideGeneration({ courseId, userId, enableGeneration = true }
             try {
                 setLoading(true);
                 setError(null);
-                
+
                 const structure = await slidesAPI.getCourseStructure(courseId);
-                
+
                 // Transform backend structure to frontend Chapter/Slide format
                 const transformedChapters: Chapter[] = structure.chapters.map(chapter => ({
                     id: chapter.id,
@@ -87,7 +87,7 @@ export function useSlideGeneration({ courseId, userId, enableGeneration = true }
         const slide = chapter.slides[slideIndex];
         if (!slide) return;
 
-        const cacheKey = `${chapter.id}_${slide.slideid}`;
+        const cacheKey = `${chapter.id}_${slide.id}`;
 
         // Check cache first
         if (!forceRegenerate && generatedCache[cacheKey]) {
@@ -100,7 +100,7 @@ export function useSlideGeneration({ courseId, userId, enableGeneration = true }
         }
 
         try {
-            setGeneratingSlideId(slide.slideid);
+            setGeneratingSlideId(slide.id);
             console.log(`Generating personalized content for: ${slide.title}`);
 
             // First, check if pre-generated slides exist
@@ -111,7 +111,7 @@ export function useSlideGeneration({ courseId, userId, enableGeneration = true }
             );
 
             let result;
-            const preGenSlide = preGenerated.slides.find(s => s.slide_id === slide.slideid);
+            const preGenSlide = preGenerated.slides.find(s => s.slide_id === slide.id);
 
             if (preGenSlide && !forceRegenerate) {
                 console.log(`✓ Using pre-generated content for ${slide.title}`);
@@ -125,7 +125,7 @@ export function useSlideGeneration({ courseId, userId, enableGeneration = true }
                 // Generate on-demand
                 const structure = await slidesAPI.getCourseStructure(courseId);
                 const chapterData = structure.chapters.find(c => c.id === chapter.id);
-                const slideData = chapterData?.slides.find(s => s.slide_id === slide.slideid);
+                const slideData = chapterData?.slides.find(s => s.slide_id === slide.id);
 
                 if (!slideData) {
                     throw new Error('Slide data not found');
@@ -142,7 +142,7 @@ export function useSlideGeneration({ courseId, userId, enableGeneration = true }
             // Update the slide with generated content
             const updatedChapters = [...chapters];
             const targetSlide = updatedChapters[chapterIndex].slides[slideIndex];
-            
+
             if (result.content_type === 'html') {
                 targetSlide.variants = {
                     text: {
@@ -177,7 +177,7 @@ export function useSlideGeneration({ courseId, userId, enableGeneration = true }
             console.log(`✓ Generated content for ${slide.title} (${result.content_type})`);
         } catch (err) {
             console.error(`Failed to generate slide content:`, err);
-            
+
             // Set error state in the slide
             const updatedChapters = [...chapters];
             updatedChapters[chapterIndex].slides[slideIndex].variants = {
