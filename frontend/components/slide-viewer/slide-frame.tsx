@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, Maximize2, X } from "lucide-react";
 import { Chapter, Slide, SlideVariant, LearningStyle } from "@/lib/api/types";
 import { cn } from "@/lib/utils";
@@ -12,6 +11,7 @@ import { DynamicContent } from "@/components/slide-viewer/dynamic-content";
 import { useFocusTracking } from "@/hooks/analytics/useFocusTracking";
 import { useSlideTracking, SlideContentType } from "@/hooks/analytics/useSlideTracking";
 import { useSession } from "@/components/providers/session-provider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface SlideFrameProps {
     chapters: Chapter[];
