@@ -11,7 +11,6 @@ import Link from "next/link";
 import { DynamicContent } from "@/components/slide-viewer/dynamic-content";
 import { useFocusTracking } from "@/hooks/analytics/useFocusTracking";
 import { useSlideGeneration } from "@/hooks/analytics/useSlideGeneration";
-import { slidesAPI } from "@/services/api";
 
 interface SlideFrameProps {
     chapters: Chapter[];
@@ -79,7 +78,12 @@ export function SlideFrame({
 
     // Generate content when navigating to a new slide (if dynamic generation enabled)
     useEffect(() => {
-        if (enableDynamicGeneration && currentSlide && !isGenerating) {
+        if (enableDynamicGeneration && currentSlide && !isGenerating && currentChapter) {
+            // NEVER generate content for chapter_1 (baseline chapter)
+            if (currentChapter.id === "chapter_1" || currentChapter.id.includes("chapter_1")) {
+                return; // Skip auto-generation for chapter 1
+            }
+            
             // Check if slide content needs to be generated
             const hasContent = currentSlide.variants.text?.content && 
                               !currentSlide.variants.text.content.includes("Loading personalized content");
@@ -89,7 +93,7 @@ export function SlideFrame({
                 generateSlideContent(currentChapterIndex, currentSlideIndex);
             }
         }
-    }, [currentChapterIndex, currentSlideIndex, enableDynamicGeneration, currentSlide]);
+    }, [currentChapterIndex, currentSlideIndex, enableDynamicGeneration, isGenerating, generateSlideContent]);
 
     // Effect to update activeVariant when slide changes or preference changes
     useEffect(() => {
@@ -125,34 +129,7 @@ export function SlideFrame({
         }
     };
 
-    const handleFinish = async () => {
-        if (!currentChapter) return;
-
-        // Call backend to mark chapter complete and pre-generate next chapter
-        // Run this in the background - don't wait for it
-        if (enableDynamicGeneration) {
-            // Fire and forget - don't await
-            slidesAPI.completeChapter(
-                currentChapter.id,
-                courseId,
-                userId,
-                'session_' + Date.now()
-            ).then(result => {
-                console.log(`✓ Chapter complete!`);
-                console.log(`  - Profile generated: ${result.profile_generated}`);
-                console.log(`  - Next chapter: ${result.next_chapter_id}`);
-                console.log(`  - Pre-generated ${result.slides_generated}/${result.slides_total} slides`);
-                
-                if (result.slides_generated > 0) {
-                    console.log(`🎉 Next chapter personalized with ${result.slides_generated} slides!`);
-                }
-            }).catch(error => {
-                console.error('Background chapter completion failed:', error);
-                // Fail silently - don't block user experience
-            });
-        }
-
-        // Immediately return to course page - don't wait for generation
+    const handleFinish = () => {
         if (onChapterComplete && currentChapter) {
             onChapterComplete(currentChapter.id);
         } else {
