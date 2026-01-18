@@ -1,18 +1,25 @@
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
-from .database import get_database
-from .learning_identity import LearningIdentityExtractor
-from .gemini_generator import get_slide_generator
-from .understanding_calculator import (
+from database import get_database
+from learning_identity import LearningIdentityExtractor
+from gemini_generator import get_slide_generator
+from understanding_calculator import (
     calculate_understanding_score,
     calculate_expected_time,
     aggregate_focus_scores,
     should_adjust_identity
 )
+import threading
+from screen_tracker import ScreenTimeTracker
+
+# Webcam Tracker Global State
+tracker_instance = None
+tracker_thread = None
 
 app = FastAPI(title="Mercury API", version="1.0.0")
 
@@ -76,7 +83,7 @@ class SessionState(BaseModel):
     session_id: str
     user_id: str
     current_slide_id: Optional[str] = None
-    time_on_current_slide: int = 0
+    time_on_current_slide: float = 0.0
     is_focused: bool = True
     focus_percentage: float = 1.0
     confusion_signals: List[str] = []
@@ -117,7 +124,7 @@ class SlideChangeRequest(BaseModel):
     user_id: str
     new_slide_id: str
     previous_slide_id: Optional[str] = None
-    time_on_previous: Optional[int] = None
+    time_on_previous: Optional[float] = None
 
 class QuizResultRequest(BaseModel):
     user_id: str
@@ -920,44 +927,91 @@ async def complete_chapter(
         )
         
         if next_chapter_slides:
-            print(f"Pre-generating {len(next_chapter_slides)} slides for {next_chapter_id}...")
-            generator = get_slide_generator()
-            
-            for slide_topic in next_chapter_slides:
-                try:
-                    # Generate slide content based on user's profile
-                    print(f"  Generating: {slide_topic['title']}...")
-                    result = generator.generate_slide_content(
-                        topic=slide_topic["title"],
-                        learning_objectives=slide_topic["learning_objectives"],
-                        visual_text_score=identity.visual_text_score,
-                        context=slide_topic["context"]
-                    )
+            # SAFETY CHECK: Never pre-generate slides for chapter_1 (baseline chapter)
+            if next_chapter_id == "chapter_1" or "chapter_1" in next_chapter_id:
+                print(f"⚠️ Skipping pre-generation for {next_chapter_id} - baseline chapter uses hardcoded HTML")
+            else:
+                print(f"Pre-generating {len(next_chapter_slides)} slides for {next_chapter_id}...")
+                generator = get_slide_generator()
+                
+                failed_slides = []
+                
+                for slide_topic in next_chapter_slides:
+                    max_retries = 2
+                    retry_count = 0
+                    success = False
                     
-                    # Store generated slide in database
-                    generated_slide = {
-                        "user_id": user_id,
-                        "course_id": course_id,
-                        "chapter_id": next_chapter_id,
-                        "slide_id": slide_topic["slide_id"],
-                        "title": slide_topic["title"],
-                        "content": result["content"],
-                        "content_type": result["content_type"],
-                        "visual_text_score": result["visual_text_score"],
-                        "video_url": result.get("video_url"),
-                        "thumbnail_url": result.get("thumbnail_url"),
-                        "metadata": result.get("metadata", {}),
-                        "generated_at": datetime.now()
-                    }
-                    db.generated_slides.insert_one(generated_slide)
-                    slides_generated += 1
-                    print(f"  ✓ Generated: {slide_topic['title']}")
-                    
-                except Exception as e:
-                    print(f"  ✗ Failed to generate slide '{slide_topic['title']}': {str(e)}")
-                    continue
-            
-            print(f"✓ Pre-generated {slides_generated}/{len(next_chapter_slides)} slides for {next_chapter_id}")
+                    while retry_count <= max_retries and not success:
+                        try:
+                            # Generate slide content based on user's profile
+                            print(f"  Generating: {slide_topic['title']}... (attempt {retry_count + 1}/{max_retries + 1})")
+                            result = generator.generate_slide_content(
+                                topic=slide_topic["title"],
+                                learning_objectives=slide_topic["learning_objectives"],
+                                visual_text_score=identity.visual_text_score,
+                                context=slide_topic["context"]
+                            )
+                            
+                            # Validate generated content
+                            if not result.get("content") or len(result.get("content", "")) < 50:
+                                raise ValueError("Generated content is too short or empty")
+                            
+                            # Store generated slide in database
+                            generated_slide = {
+                                "user_id": user_id,
+                                "course_id": course_id,
+                                "chapter_id": next_chapter_id,
+                                "slide_id": slide_topic["slide_id"],
+                                "title": slide_topic["title"],
+                                "content": result["content"],
+                                "content_type": result["content_type"],
+                                "visual_text_score": result["visual_text_score"],
+                                "video_url": result.get("video_url"),
+                                "thumbnail_url": result.get("thumbnail_url"),
+                                "metadata": result.get("metadata", {}),
+                                "generated_at": datetime.now(),
+                                "generation_attempts": retry_count + 1
+                            }
+                            db.generated_slides.insert_one(generated_slide)
+                            slides_generated += 1
+                            success = True
+                            print(f"  ✓ Generated: {slide_topic['title']}")
+                            
+                        except Exception as e:
+                            retry_count += 1
+                            error_msg = str(e)
+                            print(f"  ✗ Attempt {retry_count} failed for '{slide_topic['title']}': {error_msg}")
+                            
+                            if retry_count > max_retries:
+                                # Store failed slide for later retry
+                                failed_slides.append({
+                                    "slide_id": slide_topic["slide_id"],
+                                    "title": slide_topic["title"],
+                                    "error": error_msg
+                                })
+                                
+                                # Store failure in database for tracking
+                                db.generation_failures.insert_one({
+                                    "user_id": user_id,
+                                    "course_id": course_id,
+                                    "chapter_id": next_chapter_id,
+                                    "slide_id": slide_topic["slide_id"],
+                                    "slide_title": slide_topic["title"],
+                                    "error": error_msg,
+                                    "failed_at": datetime.now(),
+                                    "retry_count": retry_count
+                                })
+                            else:
+                                # Wait before retry (exponential backoff)
+                                import time
+                                time.sleep(2 ** retry_count)
+                
+                print(f"✓ Pre-generated {slides_generated}/{len(next_chapter_slides)} slides for {next_chapter_id}")
+                
+                if failed_slides:
+                    print(f"⚠️ {len(failed_slides)} slides failed to generate and will be retried on-demand:")
+                    for failed in failed_slides:
+                        print(f"  - {failed['title']}: {failed['error']}")
         else:
             print(f"No more chapters found after {chapter_id}")
         
@@ -969,6 +1023,8 @@ async def complete_chapter(
             "profile_generated": profile_generated,
             "slides_generated": slides_generated,
             "slides_total": len(next_chapter_slides),
+            "slides_failed": len(failed_slides) if 'failed_slides' in locals() else 0,
+            "failed_slides": failed_slides if 'failed_slides' in locals() else [],
             "timestamp": datetime.now()
         }
     
@@ -1042,6 +1098,10 @@ async def generate_slide_for_user(request: SlideGenerationRequest):
     Generate personalized slide content on-demand for a specific user.
     This is called by the frontend when a student navigates to a slide.
     
+    IMPORTANT: This should NEVER be called for chapter_1 slides, as chapter_1 
+    is the baseline chapter that uses hardcoded HTML content to establish 
+    baseline learning behavior.
+    
     The content is dynamically generated based on:
     - The slide topic/title
     - The user's learning identity (visual vs text preference)
@@ -1053,6 +1113,13 @@ async def generate_slide_for_user(request: SlideGenerationRequest):
         raise HTTPException(status_code=503, detail="Database connection unavailable")
     
     try:
+        # SAFETY CHECK: Prevent generation for chapter_1 (baseline chapter)
+        if request.context and ("chapter_1" in request.context.lower() or "chapter 1" in request.context.lower()):
+            raise HTTPException(
+                status_code=400, 
+                detail="Chapter 1 is the baseline chapter and should use hardcoded HTML content, not LLM generation."
+            )
+        
         # Get user's learning identity
         user = db.users.find_one({"user_id": request.user_id})
         
@@ -1143,6 +1210,119 @@ async def get_pre_generated_slides(
         raise HTTPException(status_code=500, detail=f"Error fetching pre-generated slides: {str(e)}")
 
 
+@app.post("/api/slides/retry-failed")
+async def retry_failed_generations(
+    user_id: str,
+    course_id: str,
+    chapter_id: str
+):
+    """
+    Retry generation for slides that failed during pre-generation.
+    This can be called manually or scheduled as a background job.
+    
+    - user_id: The user ID
+    - course_id: The course ID
+    - chapter_id: The chapter ID to retry
+    """
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database connection unavailable")
+    
+    try:
+        # Find failed generations
+        failed = list(
+            db.generation_failures.find({
+                "user_id": user_id,
+                "course_id": course_id,
+                "chapter_id": chapter_id
+            })
+        )
+        
+        if not failed:
+            return {
+                "message": "No failed generations to retry",
+                "retried": 0
+            }
+        
+        # Get user's learning identity
+        user = db.users.find_one({"user_id": user_id})
+        if not user or "learning_identity" not in user:
+            raise HTTPException(status_code=404, detail="Learning identity not found")
+        
+        identity = user["learning_identity"]
+        visual_text_score = identity.get("visual_text_score", 0.5)
+        
+        generator = get_slide_generator()
+        retried_count = 0
+        success_count = 0
+        
+        for failure in failed:
+            try:
+                # Get slide topic
+                slide_topic = db.slide_topics.find_one({
+                    "course_id": course_id,
+                    "chapter_id": chapter_id,
+                    "slide_id": failure["slide_id"]
+                })
+                
+                if not slide_topic:
+                    print(f"Slide topic not found: {failure['slide_id']}")
+                    continue
+                
+                print(f"Retrying: {failure['slide_title']}...")
+                
+                # Retry generation
+                result = generator.generate_slide_content(
+                    topic=slide_topic["title"],
+                    learning_objectives=slide_topic["learning_objectives"],
+                    visual_text_score=visual_text_score,
+                    context=slide_topic["context"]
+                )
+                
+                # Store successful generation
+                generated_slide = {
+                    "user_id": user_id,
+                    "course_id": course_id,
+                    "chapter_id": chapter_id,
+                    "slide_id": failure["slide_id"],
+                    "title": failure["slide_title"],
+                    "content": result["content"],
+                    "content_type": result["content_type"],
+                    "visual_text_score": result["visual_text_score"],
+                    "video_url": result.get("video_url"),
+                    "thumbnail_url": result.get("thumbnail_url"),
+                    "metadata": result.get("metadata", {}),
+                    "generated_at": datetime.now(),
+                    "retry_generation": True
+                }
+                db.generated_slides.insert_one(generated_slide)
+                
+                # Remove from failures
+                db.generation_failures.delete_one({"_id": failure["_id"]})
+                
+                success_count += 1
+                retried_count += 1
+                print(f"✓ Retry successful: {failure['slide_title']}")
+                
+            except Exception as e:
+                print(f"✗ Retry failed: {failure['slide_title']}: {str(e)}")
+                retried_count += 1
+                # Update failure count
+                db.generation_failures.update_one(
+                    {"_id": failure["_id"]},
+                    {"$inc": {"retry_count": 1}, "$set": {"last_retry": datetime.now()}}
+                )
+        
+        return {
+            "message": f"Retry complete: {success_count}/{retried_count} successful",
+            "retried": retried_count,
+            "successful": success_count,
+            "still_failed": retried_count - success_count
+        }
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrying failed generations: {str(e)}")
+
+
 @app.get("/")
 async def root():
     """API root endpoint."""
@@ -1151,6 +1331,63 @@ async def root():
         "version": "1.0.0",
         "docs": "/docs"
     }
+
+
+
+# ============================================================================
+# WEBCAM TRACKER CONTROL
+# ============================================================================
+
+@app.post("/api/tracker/start")
+async def start_tracker():
+    """Start the webcam attention tracker in a background thread."""
+    global tracker_instance, tracker_thread
+    
+    if tracker_instance and tracker_instance.is_running:
+        return {"message": "Tracker already running", "status": "running"}
+
+    try:
+        tracker_instance = ScreenTimeTracker()
+        tracker_instance.start_tracking()
+        
+        def run_tracker():
+            # Run the tracker loop
+            # We could pass a callback here to log database events if needed
+            tracker_instance.run()
+            
+        tracker_thread = threading.Thread(target=run_tracker, daemon=True)
+        tracker_thread.start()
+        
+        return {"message": "Tracker started successfully", "status": "started"}
+    except Exception as e:
+        print(f"Failed to start tracker: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to start tracker: {str(e)}")
+
+@app.post("/api/tracker/stop")
+async def stop_tracker():
+    """Stop the webcam attention tracker."""
+    global tracker_instance
+    
+    if tracker_instance and tracker_instance.is_running:
+        tracker_instance.stop_tracking()
+        return {"message": "Tracker stopped", "status": "stopped"}
+    
+    return {"message": "Tracker was not running", "status": "not_running"}
+
+
+@app.get("/api/webcam/stream")
+async def webcam_stream():
+    """
+    Stream the webcam feed with tracking overlay.
+    """
+    global tracker_instance
+    if tracker_instance is None:
+        tracker_instance = ScreenTimeTracker()
+    
+    return StreamingResponse(
+        tracker_instance.get_stream_generator(),
+        media_type="multipart/x-mixed-replace; boundary=frame"
+    )
 
 
 if __name__ == "__main__":

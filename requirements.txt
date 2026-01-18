@@ -6,3 +6,6 @@ pydantic
 certifi
 google-generativeai
 manim
+opencv-python
+numpy
+mediapipe

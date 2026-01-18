@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'; // 3001
+const BASE_URL = 'http://localhost:8000'; // 3001
 
 
 interface APIError {
@@ -16,7 +16,8 @@ interface FetchOptions extends RequestInit {
 async function fetchWithTimeout(resource: string, options: FetchOptions = {}): Promise<Response> {
     const { timeout = 10000, ...fetchOptions } = options;
     const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), timeout);
+    const timeoutError = new DOMException('Request timeout', 'TimeoutError');
+    const id = setTimeout(() => controller.abort(timeoutError), timeout);
 
     try {
         const response = await fetch(resource, {
@@ -138,6 +139,22 @@ export const sessionAPI = {
             }
         } catch (error) {
             console.error('[SessionAPI] Failed to end session:', error);
+        }
+    },
+
+    startTracker: async () => {
+        try {
+            await fetchWithTimeout(`${BASE_URL}/api/tracker/start`, { method: 'POST' });
+        } catch (error) {
+            console.error('[SessionAPI] Failed to start tracker:', error);
+        }
+    },
+
+    stopTracker: async () => {
+        try {
+            await fetchWithTimeout(`${BASE_URL}/api/tracker/stop`, { method: 'POST' });
+        } catch (error) {
+            console.error('[SessionAPI] Failed to stop tracker:', error);
         }
     }
 };

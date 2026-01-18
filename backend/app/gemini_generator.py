@@ -24,7 +24,7 @@ class SlideGenerator:
     Generates slide content using Gemini API based on user's learning identity
     """
     
-    def __init__(self, model_name: str = "gemini-2.5-flash"):
+    def __init__(self, model_name: str = "gemini-3-flash-preview"):
         if not GEMINI_API_KEY:
             raise ValueError("GEMINI_API_KEY not found in environment variables")
         
@@ -93,9 +93,23 @@ class SlideGenerator:
         
         try:
             response = self.model.generate_content(prompt)
+            
+            # Validate response
+            if not response or not hasattr(response, 'text'):
+                raise ValueError("Empty or invalid response from Gemini API")
+            
             generated_text = response.text
             
-            return {
+            # Validate content length
+            if len(generated_text.strip()) < 50:
+                raise ValueError(f"Generated content too short: {len(generated_text)} characters")
+            
+            # Validate it's actual HTML content (basic check)
+            if '<' not in generated_text or '>' not in generated_text:
+                # Wrap plain text in basic HTML
+                generated_text = f"<div class='slide-content'><h2>{topic}</h2><p>{generated_text}</p></div>"
+            
+            result = {
                 "content": generated_text,
                 "content_type": "html",
                 "visual_text_score": visual_text_score,
@@ -108,9 +122,21 @@ class SlideGenerator:
                     "response_tokens": response.usage_metadata.candidates_token_count if hasattr(response, 'usage_metadata') else None
                 }
             }
+            
+            # Validate content quality
+            if not self._validate_generated_content(generated_text, "html", topic):
+                raise ValueError("Generated content failed quality validation")
+            
+            return result
         
         except Exception as e:
-            raise RuntimeError(f"Failed to generate HTML content: {str(e)}")
+            error_msg = str(e)
+            print(f"Generation error: {error_msg}")
+            
+            # Return fallback content instead of failing completely
+            fallback_content = self._generate_fallback_content(topic, learning_objectives, visual_text_score)
+            
+            raise RuntimeError(f"Failed to generate HTML content: {error_msg}")
     
     def _generate_manim_animation(
         self,
@@ -227,9 +253,20 @@ Generate content that is PURELY VISUAL with MINIMAL TEXT:
 **Content Style Requirements (VISUAL-TEXT SPECTRUM Score: {visual_text_score:.2f}):**
 {style_instruction}
 
+**Styling Requirements (CRITICAL for Accessibility):**
+- The content is rendered on a DARK BACKGROUND (deep blue/black).
+- You MUST use Tailwind CSS classes for all styling to ensure visibility.
+- KEY RULES:
+  - For normal text: Use `class="text-zinc-100"` or `class="text-zinc-200"`
+  - For headings: Use `class="text-white font-bold text-xl mb-2"` or `class="text-blue-300 font-bold"`
+  - For keywords/emphasis: Use `class="text-yellow-300 font-semibold"` or `class="text-cyan-300"`
+  - For lists: Use `class="list-disc list-inside space-y-2 text-zinc-200"`
+  - NEVER use black or dark gray text (it will be invisible).
+  - Use `class="bg-white/5 p-4 rounded-lg border border-white/10 my-4"` for callout boxes.
+
 **Output Format:**
-Generate the slide content as HTML that can be rendered directly. Include:
-1. A clear title or heading (use <h2> or <h3> tags)
+Generate the slide content as HTML with inline Tailwind classes. Include:
+1. A clear title or heading (use <h2> or 3> tags with appropriate color classes)
 2. Main content following the style instructions above
 3. For visual elements, use detailed placeholder descriptions like:
    - [DIAGRAM: description of what the diagram shows]
@@ -248,7 +285,7 @@ Generate the slide content as HTML that can be rendered directly. Include:
 **Additional Guidelines:**
 - Ensure content is pedagogically sound and academically rigorous
 - Match the cognitive style indicated by the visual-text score
-- Use proper semantic HTML tags (h2, h3, p, ul, li, div, strong, em, etc.)
+- Use proper semantic HTML tags (h2, h3, p, ul, li, div, strong, em, etc.) WITH Tailwind classes
 - Maintain educational value while adapting to the preferred learning style
 - Do NOT generate code, equations should use standard notation within text
 - Keep paragraphs short (2-4 lines maximum)
@@ -257,6 +294,54 @@ Generate the slide content as HTML that can be rendered directly. Include:
 Generate the HTML content now:"""
         
         return prompt
+    
+    def _generate_fallback_content(
+        self,
+        topic: str,
+        learning_objectives: str,
+        visual_text_score: float
+    ) -> Dict[str, Any]:
+        """
+        Generate basic fallback content when LLM fails.
+        This ensures students always get SOME content rather than a blank slide.
+        """
+        # Create structured fallback based on learning objectives
+        content = f"""
+        <div class="fallback-slide-content p-8">
+            <h2 class="text-2xl font-bold mb-6 text-blue-400">{topic}</h2>
+            
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold mb-3 text-zinc-300">Learning Objectives</h3>
+                <p class="text-zinc-400 leading-relaxed">{learning_objectives}</p>
+            </div>
+            
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold mb-3 text-zinc-300">Key Concepts</h3>
+                <ul class="list-disc list-inside space-y-2 text-zinc-400">
+                    <li>This content is being prepared for your learning style</li>
+                    <li>Please try refreshing the page or contact support if this persists</li>
+                </ul>
+            </div>
+            
+            <div class="mt-8 p-4 bg-yellow-900/20 border border-yellow-700/50 rounded">
+                <p class="text-sm text-yellow-400">
+                    ⚠️ Note: This is fallback content. Full personalized content will be generated shortly.
+                </p>
+            </div>
+        </div>
+        """
+        
+        return {
+            "content": content.strip(),
+            "content_type": "html",
+            "visual_text_score": visual_text_score,
+            "topic": topic,
+            "metadata": {
+                "generated_by": "fallback",
+                "is_fallback": True,
+                "format": "html"
+            }
+        }
     
     def _build_manim_prompt(
         self,
@@ -385,6 +470,46 @@ class GeneratedScene(Scene):
 Generate ONLY the Python code (no markdown, no explanations, just code starting with "from manim import *"):"""
         
         return prompt
+    
+    def _validate_generated_content(self, content: str, content_type: str, topic: str) -> bool:
+        """
+        Validate generated content meets minimum quality standards.
+        Returns True if valid, False otherwise.
+        """
+        if not content or len(content.strip()) < 50:
+            print(f"❌ Content too short: {len(content)} chars")
+            return False
+        
+        if content_type == "html":
+            # Check for basic HTML structure
+            if '<' not in content or '>' not in content:
+                print(f"❌ Missing HTML tags")
+                return False
+            
+            # Check for topic presence (content should mention the topic)
+            topic_words = topic.lower().split()
+            content_lower = content.lower()
+            matches = sum(1 for word in topic_words if word in content_lower and len(word) > 3)
+            
+            if matches == 0:
+                print(f"❌ Topic '{topic}' not found in content")
+                return False
+        
+        elif content_type == "manim":
+            # Check for required Manim structure
+            required_patterns = [
+                "from manim import",
+                "class GeneratedScene",
+                "def construct(self)"
+            ]
+            
+            for pattern in required_patterns:
+                if pattern not in content:
+                    print(f"❌ Missing required Manim pattern: {pattern}")
+                    return False
+        
+        print(f"✓ Content validation passed for '{topic}'")
+        return True
     
     def _extract_code_from_markdown(self, text: str) -> str:
         """Extract Python code from markdown code blocks"""
