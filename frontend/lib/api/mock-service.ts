@@ -25,7 +25,9 @@ const MOCK_USER: User = {
 const MOCK_SLIDES: Slide[] = [
     {
         id: "slide_1",
+        slideid: "slide_1",
         title: "Introduction to Derivatives",
+        chapterId: "chapter_1",
         variants: {
             // visual: {
             //     type: "visual",
@@ -45,8 +47,7 @@ const MOCK_SLIDES: Slide[] = [
                     "<div class='p-4 border-2 border-blue-200 dark:border-blue-800 rounded-lg bg-blue-50 dark:bg-blue-950/30'><h4 class='font-bold text-lg mb-3'>Worked Example 1: Power Rule</h4><p class='mb-2'><strong>Problem:</strong> Find the derivative of f(x) = x³</p><div class='ml-4 space-y-2'><p><strong>Step 1:</strong> Identify the power rule: d/dx[x^n] = nx^(n-1)</p><p><strong>Step 2:</strong> Apply with n = 3</p><p class='font-mono bg-white dark:bg-gray-900 p-2 rounded'>f'(x) = 3x^(3-1) = 3x²</p></div><p class='mt-3 text-sm text-gray-600 dark:text-gray-400'><strong>Interpretation:</strong> At any point x, the function is changing at a rate of 3x².</p></div>",
                 durationEstimate: 60,
             }
-        },
-        chapterId: "chapter_1"
+        }
     },
     {
         id: "course_calc_101",

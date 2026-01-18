@@ -40,6 +40,7 @@ export function useSlideGeneration({ courseId, userId, enableGeneration = true }
 
                 const structure = await slidesAPI.getCourseStructure(courseId);
 
+
                 // Load mock data for chapter_1
                 const mockService = new MockService();
                 const mockCourse = await mockService.getCourse(courseId);
