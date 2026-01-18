@@ -5,17 +5,17 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
-from database import get_database
-from learning_identity import LearningIdentityExtractor
-from gemini_generator import get_slide_generator
-from understanding_calculator import (
+from .database import get_database
+from .learning_identity import LearningIdentityExtractor
+from .gemini_generator import get_slide_generator
+from .understanding_calculator import (
     calculate_understanding_score,
     calculate_expected_time,
     aggregate_focus_scores,
     should_adjust_identity
 )
 import threading
-from screen_tracker import ScreenTimeTracker
+from .screen_tracker import ScreenTimeTracker
 
 # Webcam Tracker Global State
 tracker_instance = None

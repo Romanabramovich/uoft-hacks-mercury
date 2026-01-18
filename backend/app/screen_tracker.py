@@ -179,6 +179,9 @@ class ScreenTimeTracker:
                 # Draw Overlay
                 frame = self.draw_overlay(frame, faces)
                 
+                # Flip frame horizontally so text appears correctly when frontend mirrors it
+                frame = cv2.flip(frame, 1)
+                
                 # Encode
                 ret, buffer = cv2.imencode('.jpg', frame)
                 if not ret:
