@@ -24,6 +24,7 @@ class ScreenTimeTracker:
         self.is_looking = False
         self.is_running = False  # Changed: Default to paused
         self.last_detection_time = None
+        self.session_start_time = time.time() # Initialize here
 
         # Configuration
         self.min_face_size = (30, 30)
@@ -32,8 +33,9 @@ class ScreenTimeTracker:
         """Start or resume tracking."""
         if not self.is_running:
             self.is_running = True
-            self.session_start_time = time.time()
             self.last_frame_time = time.time()
+            if self.session_start_time is None:
+                self.session_start_time = time.time()
             print("[CONTROL] Tracking Started")
 
     def stop_tracking(self):
@@ -156,6 +158,44 @@ class ScreenTimeTracker:
         print(f"Total Focus Time:     {self.format_time(focus_time)}")
         print(f"Average Attention:    {attention_span*100:.1f}%")
         print("=" * 50 + "\n")
+
+    def get_stream_generator(self):
+        """Generator function for MJPEG streaming."""
+        if not self.cap.isOpened():
+            self.cap = cv2.VideoCapture(0)
+            
+        self.start_tracking()
+        
+        try:
+            while self.is_running:
+                ret, frame = self.cap.read()
+                if not ret:
+                    break
+                    
+                # Detect and Update
+                face_detected, faces = self.detect_face(frame)
+                self.update_tracking(face_detected)
+                
+                # Draw Overlay
+                frame = self.draw_overlay(frame, faces)
+                
+                # Encode
+                ret, buffer = cv2.imencode('.jpg', frame)
+                if not ret:
+                   continue
+                   
+                frame_bytes = buffer.tobytes()
+                
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+                       
+                time.sleep(0.03) # ~30 FPS
+        finally:
+            self.stop_tracking() # Ensure running state is reset
+            # We don't release cap here if we want to restart, 
+            # but usually for a web stream we might want to keep it open or release on disconnect.
+            # For simplicity, let's keep it open or rely on the next call to re-open.
+            # self.cap.release() 
 
     def run(self, callback=None):
         """Main tracking loop.
