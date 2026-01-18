@@ -10,6 +10,8 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { DynamicContent } from "@/components/slide-viewer/dynamic-content";
 import { useFocusTracking } from "@/hooks/analytics/useFocusTracking";
+import { useSlideTracking, SlideContentType } from "@/hooks/analytics/useSlideTracking";
+import { useSession } from "@/components/providers/session-provider";
 
 interface SlideFrameProps {
     chapters: Chapter[];
@@ -22,6 +24,14 @@ interface SlideFrameProps {
 export function SlideFrame({ chapters, courseTitle, initialChapterId, onExit, onChapterComplete }: SlideFrameProps) {
     // Initialize analytics
     useFocusTracking();
+    const { setLastSlide } = useSession();
+
+    // Reset slide tracking on unmount (to avoid counting dashboard time)
+    useEffect(() => {
+        return () => {
+            setLastSlide(null);
+        };
+    }, [setLastSlide]);
 
     // Core navigation state
     const [currentChapterIndex, setCurrentChapterIndex] = useState(() => {
@@ -45,6 +55,21 @@ export function SlideFrame({ chapters, courseTitle, initialChapterId, onExit, on
     const currentChapter = chapters[currentChapterIndex];
     const slides = currentChapter?.slides || [];
     const currentSlide: Slide | null = slides[currentSlideIndex] || null;
+
+    // Determine content type for analytics
+    const getContentType = (type: string | undefined): SlideContentType => {
+        switch (type) {
+            case "visual": return "diagram-heavy";
+            case "example": return "interactive";
+            case "text": return "text-heavy";
+            default: return "text-heavy";
+        }
+    };
+
+    useSlideTracking(
+        currentSlide?.id || "",
+        getContentType(activeVariant?.type)
+    );
 
     // Effect to update activeVariant when slide changes or preference changes
     useEffect(() => {
