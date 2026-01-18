@@ -16,10 +16,7 @@ export default function CourseChaptersPage() {
     const courseId = params.courseId as string;
     const [course, setCourse] = useState<Course | null>(null);
     const [loading, setLoading] = useState(true);
-
-    // Mock progress state - normally fetched from backend
-    // In this demo, we'll assume Chapter 1 is complete, Chapter 2 is active, others locked
-    const mockCompletedChapterIds = ["chap_1"];
+    const [completedChapterIds, setCompletedChapterIds] = useState<string[]>([]);
 
     useEffect(() => {
         if (courseId) {
@@ -27,6 +24,11 @@ export default function CourseChaptersPage() {
                 setCourse(data);
                 setLoading(false);
             });
+
+            // Load progress from local storage
+            const storageKey = `course_progress_${courseId}`;
+            const progress = JSON.parse(localStorage.getItem(storageKey) || "[]");
+            setCompletedChapterIds(progress);
         }
     }, [courseId]);
 
@@ -47,9 +49,9 @@ export default function CourseChaptersPage() {
 
             <div className="grid gap-4">
                 {course.chapters.map((chapter, index) => {
-                    const isCompleted = mockCompletedChapterIds.includes(chapter.id);
+                    const isCompleted = completedChapterIds.includes(chapter.id);
                     // Chapter is unlocked if it's completed OR if it's the first one OR if the previous one is completed
-                    const isPreviousCompleted = index === 0 || mockCompletedChapterIds.includes(course.chapters[index - 1].id);
+                    const isPreviousCompleted = index === 0 || completedChapterIds.includes(course.chapters[index - 1].id);
                     // Active means it's the "newest incomplete lecture" - i.e. previous is done, but this one isn't
                     const isActive = isPreviousCompleted && !isCompleted;
                     const isLocked = !isPreviousCompleted;
@@ -64,7 +66,7 @@ export default function CourseChaptersPage() {
                             )}
                             onClick={() => {
                                 if (!isLocked) {
-                                    router.push(`/learn/${course.id}`); // In real app, might pass chapterId too
+                                    router.push(`/learn/${course.id}?chapterId=${chapter.id}`); // In real app, might pass chapterId too
                                 }
                             }}
                         >
