@@ -11,9 +11,11 @@ import Link from "next/link";
 import { DynamicContent } from "@/components/slide-viewer/dynamic-content";
 import { useFocusTracking } from "@/hooks/analytics/useFocusTracking";
 import { useSlideGeneration } from "@/hooks/analytics/useSlideGeneration";
+
 import { useSlideTracking, SlideContentType } from "@/hooks/analytics/useSlideTracking";
 import { useSession } from "@/components/providers/session-provider";
 import { slidesAPI } from "@/services/api";
+
 
 interface SlideFrameProps {
     chapters: Chapter[];
@@ -104,7 +106,12 @@ export function SlideFrame({
 
     // Generate content when navigating to a new slide (if dynamic generation enabled)
     useEffect(() => {
-        if (enableDynamicGeneration && currentSlide && !isGenerating) {
+        if (enableDynamicGeneration && currentSlide && !isGenerating && currentChapter) {
+            // NEVER generate content for chapter_1 (baseline chapter)
+            if (currentChapter.id === "chapter_1" || currentChapter.id.includes("chapter_1")) {
+                return; // Skip auto-generation for chapter 1
+            }
+            
             // Check if slide content needs to be generated
             const hasContent = currentSlide.variants.text?.content &&
                 !currentSlide.variants.text.content.includes("Loading personalized content");
@@ -114,7 +121,7 @@ export function SlideFrame({
                 generateSlideContent(currentChapterIndex, currentSlideIndex);
             }
         }
-    }, [currentChapterIndex, currentSlideIndex, enableDynamicGeneration, currentSlide]);
+    }, [currentChapterIndex, currentSlideIndex, enableDynamicGeneration, isGenerating, generateSlideContent]);
 
     // Effect to update activeVariant when slide changes or preference changes
     useEffect(() => {
@@ -178,6 +185,7 @@ export function SlideFrame({
         }
 
         // Immediately return to course page - don't wait for generation
+
         if (onChapterComplete && currentChapter) {
             onChapterComplete(currentChapter.id);
         } else {
