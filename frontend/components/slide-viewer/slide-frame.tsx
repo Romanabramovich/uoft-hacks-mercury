@@ -36,6 +36,7 @@ export function SlideFrame({ chapters, courseTitle, initialChapterId, onExit, on
     // User preference state
     const [userPreference, setUserPreference] = useState<LearningStyle>("text");
     const [activeVariant, setActiveVariant] = useState<SlideVariant | null>(null);
+    const [previousVariant, setPreviousVariant] = useState<SlideVariant | null>(null);
     const [showConfetti, setShowConfetti] = useState(false);
 
     console.log("Chapters received in SlideFrame:", chapters);
@@ -102,7 +103,17 @@ export function SlideFrame({ chapters, courseTitle, initialChapterId, onExit, on
         }
 
         if (currentSlide?.variants[type]) {
+            if (type === "example") {
+                setPreviousVariant(activeVariant);
+            }
             setActiveVariant(currentSlide.variants[type]);
+        }
+    };
+
+    const handleBackToPrevious = () => {
+        if (previousVariant) {
+            setActiveVariant(previousVariant);
+            setPreviousVariant(null);
         }
     };
 
@@ -153,23 +164,16 @@ export function SlideFrame({ chapters, courseTitle, initialChapterId, onExit, on
                     </Select>
 
                     <div className="hidden md:flex gap-2">
-                        <Button
-                            variant={activeVariant.type === "visual" ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => triggerAdaptation("visual")}
-                            className="text-xs border-zinc-700"
-                        >
-                            Visual
-                        </Button>
-                        <Button
-                            variant={activeVariant.type === "text" ? "default" : "outline"}
-                            size="sm"
-                            onClick={() => triggerAdaptation("text")}
-                            className="text-xs border-zinc-700"
-                        >
-                            Text
-                        </Button>
-
+                        {activeVariant?.type === "example" && previousVariant && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleBackToPrevious}
+                                className="text-xs border-zinc-700"
+                            >
+                                Back
+                            </Button>
+                        )}
                         <Button
                             variant={activeVariant.type === "example" ? "default" : "outline"}
                             size="sm"

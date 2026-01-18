@@ -29,12 +29,12 @@ const MOCK_SLIDES: Slide[] = [
         chapterId: "chapter_1",
         title: "Introduction to Derivatives",
         variants: {
-            visual: {
-                type: "visual",
-                content:
-                    "<div class='p-4 bg-muted rounded-lg'><h3 class='text-lg font-bold mb-2'>Visualizing the Derivative</h3><div class='aspect-video bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded flex flex-col items-center justify-center'><div class='text-center'><p class='text-lg font-semibold text-blue-700 dark:text-blue-300 mb-2'>Tangent Line Animation</p><p class='text-sm text-gray-600 dark:text-gray-400'>Watch how the slope changes as we move along the curve</p><svg class='mt-4' width='200' height='120' viewBox='0 0 200 120'><path d='M 10 110 Q 60 20 190 10' stroke='currentColor' fill='none' stroke-width='2'/><line x1='80' y1='5' x2='120' y2='115' stroke='red' stroke-width='2'/><circle cx='100' cy='60' r='4' fill='red'/></svg></div></div></div>",
-                durationEstimate: 45,
-            },
+            // visual: {
+            //     type: "visual",
+            //     content:
+            //         "<div class='p-4 bg-muted rounded-lg'><h3 class='text-lg font-bold mb-2'>Visualizing the Derivative</h3><div class='aspect-video bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900/30 dark:to-purple-900/30 rounded flex flex-col items-center justify-center'><div class='text-center'><p class='text-lg font-semibold text-blue-700 dark:text-blue-300 mb-2'>Tangent Line Animation</p><p class='text-sm text-gray-600 dark:text-gray-400'>Watch how the slope changes as we move along the curve</p><svg class='mt-4' width='200' height='120' viewBox='0 0 200 120'><path d='M 10 110 Q 60 20 190 10' stroke='currentColor' fill='none' stroke-width='2'/><line x1='80' y1='5' x2='120' y2='115' stroke='red' stroke-width='2'/><circle cx='100' cy='60' r='4' fill='red'/></svg></div></div></div>",
+            //     durationEstimate: 45,
+            // },
             text: {
                 type: "text",
                 content:
@@ -61,12 +61,12 @@ const MOCK_SLIDES: Slide[] = [
                     "<div class='prose dark:prose-invert'><h3>Essential Derivative Rules</h3><ul><li><strong>Power Rule:</strong> d/dx[x^n] = nx^(n-1)</li><li><strong>Constant Rule:</strong> d/dx[c] = 0 (where c is a constant)</li><li><strong>Constant Multiple Rule:</strong> d/dx[cf(x)] = c·f'(x)</li><li><strong>Sum Rule:</strong> d/dx[f(x) + g(x)] = f'(x) + g'(x)</li></ul><p class='mt-4'>These rules form the foundation for finding derivatives of polynomial functions.</p></div>",
                 durationEstimate: 40,
             },
-            visual: {
-                type: "visual",
-                content:
-                    "<div class='p-4 bg-muted rounded-lg'><h3 class='text-lg font-bold mb-2'>Rule Visualization</h3><div class='grid grid-cols-2 gap-4'><div class='p-3 bg-green-100 dark:bg-green-900/30 rounded'><p class='font-semibold text-green-800 dark:text-green-300'>Power Rule</p><p class='text-sm font-mono mt-2'>x³ → 3x²</p><p class='text-xs mt-1'>Bring down exponent, reduce power by 1</p></div><div class='p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded'><p class='font-semibold text-yellow-800 dark:text-yellow-300'>Constant Rule</p><p class='text-sm font-mono mt-2'>5 → 0</p><p class='text-xs mt-1'>Constants don't change</p></div><div class='p-3 bg-purple-100 dark:bg-purple-900/30 rounded'><p class='font-semibold text-purple-800 dark:text-purple-300'>Sum Rule</p><p class='text-sm font-mono mt-2'>(x² + x³)' = 2x + 3x²</p><p class='text-xs mt-1'>Differentiate each term separately</p></div><div class='p-3 bg-blue-100 dark:bg-blue-900/30 rounded'><p class='font-semibold text-blue-800 dark:text-blue-300'>Constant Multiple</p><p class='text-sm font-mono mt-2'>(5x²)' = 5(2x) = 10x</p><p class='text-xs mt-1'>Factor out constants</p></div></div></div>",
-                durationEstimate: 50,
-            },
+            // visual: {
+            //     type: "visual",
+            //     content:
+            //         "<div class='p-4 bg-muted rounded-lg'><h3 class='text-lg font-bold mb-2'>Rule Visualization</h3><div class='grid grid-cols-2 gap-4'><div class='p-3 bg-green-100 dark:bg-green-900/30 rounded'><p class='font-semibold text-green-800 dark:text-green-300'>Power Rule</p><p class='text-sm font-mono mt-2'>x³ → 3x²</p><p class='text-xs mt-1'>Bring down exponent, reduce power by 1</p></div><div class='p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded'><p class='font-semibold text-yellow-800 dark:text-yellow-300'>Constant Rule</p><p class='text-sm font-mono mt-2'>5 → 0</p><p class='text-xs mt-1'>Constants don't change</p></div><div class='p-3 bg-purple-100 dark:bg-purple-900/30 rounded'><p class='font-semibold text-purple-800 dark:text-purple-300'>Sum Rule</p><p class='text-sm font-mono mt-2'>(x² + x³)' = 2x + 3x²</p><p class='text-xs mt-1'>Differentiate each term separately</p></div><div class='p-3 bg-blue-100 dark:bg-blue-900/30 rounded'><p class='font-semibold text-blue-800 dark:text-blue-300'>Constant Multiple</p><p class='text-sm font-mono mt-2'>(5x²)' = 5(2x) = 10x</p><p class='text-xs mt-1'>Factor out constants</p></div></div></div>",
+            //     durationEstimate: 50,
+            // },
             example: {
                 type: "example",
                 content:
@@ -81,12 +81,12 @@ const MOCK_SLIDES: Slide[] = [
         chapterId: "chapter_1",
         title: "The Limit Definition",
         variants: {
-            text: {
-                type: "text",
-                content:
-                    "<div class='prose dark:prose-invert'><h3>Understanding the Limit Definition</h3><p>The derivative is formally defined using limits:</p><p class='font-mono bg-gray-100 dark:bg-gray-800 p-3 rounded my-3'>f'(x) = lim[h→0] (f(x+h) - f(x))/h</p><ul><li><strong>Numerator:</strong> Change in y-values (rise)</li><li><strong>Denominator:</strong> Change in x-values (run)</li><li><strong>Limit as h→0:</strong> Makes the interval infinitesimally small</li></ul><p class='mt-3'>This captures the exact slope at a single point, not just an average over an interval.</p></div>",
-                durationEstimate: 50,
-            },
+            // text: {
+            //     type: "text",
+            //     content:
+            //         "<div class='prose dark:prose-invert'><h3>Understanding the Limit Definition</h3><p>The derivative is formally defined using limits:</p><p class='font-mono bg-gray-100 dark:bg-gray-800 p-3 rounded my-3'>f'(x) = lim[h→0] (f(x+h) - f(x))/h</p><ul><li><strong>Numerator:</strong> Change in y-values (rise)</li><li><strong>Denominator:</strong> Change in x-values (run)</li><li><strong>Limit as h→0:</strong> Makes the interval infinitesimally small</li></ul><p class='mt-3'>This captures the exact slope at a single point, not just an average over an interval.</p></div>",
+            //     durationEstimate: 50,
+            // },
             visual: {
                 type: "visual",
                 content:
@@ -107,12 +107,12 @@ const MOCK_SLIDES: Slide[] = [
         chapterId: "chapter_1",
         title: "Derivative Notation",
         variants: {
-            text: {
-                type: "text",
-                content:
-                    "<div class='prose dark:prose-invert'><h3>Different Ways to Write Derivatives</h3><p>There are several common notations for derivatives, each with its own use:</p><ul><li><strong>Lagrange notation:</strong> f'(x) - emphasizes the derivative as a function</li><li><strong>Leibniz notation:</strong> dy/dx or df/dx - emphasizes the ratio of infinitesimals</li><li><strong>Newton notation:</strong> ẏ - used primarily in physics for time derivatives</li><li><strong>Euler notation:</strong> D<sub>x</sub>f - operator notation</li></ul><p class='mt-3'>All notations represent the same concept: the instantaneous rate of change.</p></div>",
-                durationEstimate: 45,
-            },
+            // text: {
+            //     type: "text",
+            //     content:
+            //         "<div class='prose dark:prose-invert'><h3>Different Ways to Write Derivatives</h3><p>There are several common notations for derivatives, each with its own use:</p><ul><li><strong>Lagrange notation:</strong> f'(x) - emphasizes the derivative as a function</li><li><strong>Leibniz notation:</strong> dy/dx or df/dx - emphasizes the ratio of infinitesimals</li><li><strong>Newton notation:</strong> ẏ - used primarily in physics for time derivatives</li><li><strong>Euler notation:</strong> D<sub>x</sub>f - operator notation</li></ul><p class='mt-3'>All notations represent the same concept: the instantaneous rate of change.</p></div>",
+            //     durationEstimate: 45,
+            // },
             visual: {
                 type: "visual",
                 content:
@@ -133,12 +133,12 @@ const MOCK_SLIDES: Slide[] = [
         chapterId: "chapter_1",
         title: "Higher-Order Derivatives",
         variants: {
-            text: {
-                type: "text",
-                content:
-                    "<div class='prose dark:prose-invert'><h3>Second and Higher Derivatives</h3><p>The derivative of a derivative is called a higher-order derivative:</p><ul><li><strong>Second derivative:</strong> f''(x) or d²y/dx² - measures the rate of change of the rate of change</li><li><strong>Third derivative:</strong> f'''(x) or d³y/dx³ - and so on</li><li><strong>Physical meaning:</strong> If position = f(t), then velocity = f'(t) and acceleration = f''(t)</li></ul><p class='mt-3'>Higher-order derivatives help us understand concavity, inflection points, and acceleration.</p></div>",
-                durationEstimate: 50,
-            },
+            // text: {
+            //     type: "text",
+            //     content:
+            //         "<div class='prose dark:prose-invert'><h3>Second and Higher Derivatives</h3><p>The derivative of a derivative is called a higher-order derivative:</p><ul><li><strong>Second derivative:</strong> f''(x) or d²y/dx² - measures the rate of change of the rate of change</li><li><strong>Third derivative:</strong> f'''(x) or d³y/dx³ - and so on</li><li><strong>Physical meaning:</strong> If position = f(t), then velocity = f'(t) and acceleration = f''(t)</li></ul><p class='mt-3'>Higher-order derivatives help us understand concavity, inflection points, and acceleration.</p></div>",
+            //     durationEstimate: 50,
+            // },
             visual: {
                 type: "visual",
                 content:
@@ -165,12 +165,12 @@ const MOCK_SLIDES: Slide[] = [
                     "<div class='prose dark:prose-invert'><h3>The Power Rule</h3><p>For any real number n, if f(x) = x^n, then f'(x) = nx^(n-1).</p><p class='mt-3'>This is one of the most fundamental and frequently used rules in calculus.</p></div>",
                 durationEstimate: 30,
             },
-            visual: {
-                type: "visual",
-                content:
-                    "<div class='p-4 bg-muted rounded-lg'><h3 class='text-lg font-bold mb-2'>Power Rule Visualization</h3><div class='text-center p-6 bg-gradient-to-r from-indigo-100 to-blue-100 dark:from-indigo-900/30 dark:to-blue-900/30 rounded'><p class='text-2xl font-mono mb-4'>x^n → nx^(n-1)</p><div class='mt-4 space-y-2'><p class='text-sm'>The exponent becomes a coefficient</p><p class='text-sm'>The new exponent is one less</p></div></div></div>",
-                durationEstimate: 35,
-            },
+            // visual: {
+            //     type: "visual",
+            //     content:
+            //         "<div class='p-4 bg-muted rounded-lg'><h3 class='text-lg font-bold mb-2'>Power Rule Visualization</h3><div class='text-center p-6 bg-gradient-to-r from-indigo-100 to-blue-100 dark:from-indigo-900/30 dark:to-blue-900/30 rounded'><p class='text-2xl font-mono mb-4'>x^n → nx^(n-1)</p><div class='mt-4 space-y-2'><p class='text-sm'>The exponent becomes a coefficient</p><p class='text-sm'>The new exponent is one less</p></div></div></div>",
+            //     durationEstimate: 35,
+            // },
             example: {
                 type: "example",
                 content:
@@ -191,12 +191,12 @@ const MOCK_SLIDES: Slide[] = [
                     "<div class='prose dark:prose-invert'><h3>The Product Rule</h3><p>When differentiating the product of two functions, we use the product rule:</p><p class='font-mono bg-gray-100 dark:bg-gray-800 p-3 rounded my-3'>(f·g)' = f'·g + f·g'</p><p>In words: the derivative of the first times the second, plus the first times the derivative of the second.</p><p class='mt-3'><strong>Remember:</strong> You cannot simply multiply the derivatives of each function separately!</p></div>",
                 durationEstimate: 45,
             },
-            visual: {
-                type: "visual",
-                content:
-                    "<div class='p-4 bg-muted rounded-lg'><h3 class='text-lg font-bold mb-2'>Product Rule Visual</h3><div class='bg-gradient-to-br from-rose-100 to-red-100 dark:from-rose-900/30 dark:to-red-900/30 rounded p-6'><div class='text-center space-y-4'><p class='text-xl font-bold'>d/dx[f(x)·g(x)]</p><div class='text-3xl my-4'>=</div><div class='grid grid-cols-2 gap-2'><div class='p-3 bg-white/50 dark:bg-black/20 rounded'><p class='font-mono'>f'(x)·g(x)</p></div><div class='text-2xl flex items-center justify-center'>+</div><div class='p-3 bg-white/50 dark:bg-black/20 rounded col-start-1'><p class='font-mono'>f(x)·g'(x)</p></div></div></div></div></div>",
-                durationEstimate: 50,
-            },
+            // visual: {
+            //     type: "visual",
+            //     content:
+            //         "<div class='p-4 bg-muted rounded-lg'><h3 class='text-lg font-bold mb-2'>Product Rule Visual</h3><div class='bg-gradient-to-br from-rose-100 to-red-100 dark:from-rose-900/30 dark:to-red-900/30 rounded p-6'><div class='text-center space-y-4'><p class='text-xl font-bold'>d/dx[f(x)·g(x)]</p><div class='text-3xl my-4'>=</div><div class='grid grid-cols-2 gap-2'><div class='p-3 bg-white/50 dark:bg-black/20 rounded'><p class='font-mono'>f'(x)·g(x)</p></div><div class='text-2xl flex items-center justify-center'>+</div><div class='p-3 bg-white/50 dark:bg-black/20 rounded col-start-1'><p class='font-mono'>f(x)·g'(x)</p></div></div></div></div></div>",
+            //     durationEstimate: 50,
+            // },
             example: {
                 type: "example",
                 content:
@@ -211,12 +211,12 @@ const MOCK_SLIDES: Slide[] = [
         chapterId: "chapter_2",
         title: "Quotient Rule",
         variants: {
-            text: {
-                type: "text",
-                content:
-                    "<div class='prose dark:prose-invert'><h3>The Quotient Rule</h3><p>When differentiating a quotient of two functions, we use the quotient rule:</p><p class='font-mono bg-gray-100 dark:bg-gray-800 p-3 rounded my-3'>(f/g)' = (f'·g - f·g')/g²</p><p><strong>Memory trick:</strong> 'Low dee high minus high dee low, over the square of what's below'</p><ul class='mt-3'><li>Low = g(x) (denominator)</li><li>High = f(x) (numerator)</li><li>dee = derivative</li></ul></div>",
-                durationEstimate: 50,
-            },
+            // text: {
+            //     type: "text",
+            //     content:
+            //         "<div class='prose dark:prose-invert'><h3>The Quotient Rule</h3><p>When differentiating a quotient of two functions, we use the quotient rule:</p><p class='font-mono bg-gray-100 dark:bg-gray-800 p-3 rounded my-3'>(f/g)' = (f'·g - f·g')/g²</p><p><strong>Memory trick:</strong> 'Low dee high minus high dee low, over the square of what's below'</p><ul class='mt-3'><li>Low = g(x) (denominator)</li><li>High = f(x) (numerator)</li><li>dee = derivative</li></ul></div>",
+            //     durationEstimate: 50,
+            // },
             visual: {
                 type: "visual",
                 content:
@@ -237,12 +237,12 @@ const MOCK_SLIDES: Slide[] = [
         chapterId: "chapter_2",
         title: "Chain Rule",
         variants: {
-            text: {
-                type: "text",
-                content:
-                    "<div class='prose dark:prose-invert'><h3>The Chain Rule</h3><p>The chain rule is used to differentiate composite functions (a function inside another function):</p><p class='font-mono bg-gray-100 dark:bg-gray-800 p-3 rounded my-3'>d/dx[f(g(x))] = f'(g(x))·g'(x)</p><p>In Leibniz notation: dy/dx = (dy/du)·(du/dx)</p><p class='mt-3'><strong>Process:</strong> Differentiate the outer function, leave the inner function alone, then multiply by the derivative of the inner function.</p></div>",
-                durationEstimate: 55,
-            },
+            // text: {
+            //     type: "text",
+            //     content:
+            //         "<div class='prose dark:prose-invert'><h3>The Chain Rule</h3><p>The chain rule is used to differentiate composite functions (a function inside another function):</p><p class='font-mono bg-gray-100 dark:bg-gray-800 p-3 rounded my-3'>d/dx[f(g(x))] = f'(g(x))·g'(x)</p><p>In Leibniz notation: dy/dx = (dy/du)·(du/dx)</p><p class='mt-3'><strong>Process:</strong> Differentiate the outer function, leave the inner function alone, then multiply by the derivative of the inner function.</p></div>",
+            //     durationEstimate: 55,
+            // },
             visual: {
                 type: "visual",
                 content:
@@ -263,12 +263,12 @@ const MOCK_SLIDES: Slide[] = [
         chapterId: "chapter_2",
         title: "Combining Differentiation Rules",
         variants: {
-            text: {
-                type: "text",
-                content:
-                    "<div class='prose dark:prose-invert'><h3>Combining Multiple Rules</h3><p>Complex functions often require using multiple differentiation rules together:</p><ul><li><strong>Strategy 1:</strong> Identify which rule applies to the outermost operation</li><li><strong>Strategy 2:</strong> Work from outside to inside, applying rules as needed</li><li><strong>Strategy 3:</strong> Simplify algebraically when possible before differentiating</li></ul><p class='mt-3'>Common combinations: chain rule + power rule, product rule + chain rule, quotient rule + chain rule.</p></div>",
-                durationEstimate: 60,
-            },
+            // text: {
+            //     type: "text",
+            //     content:
+            //         "<div class='prose dark:prose-invert'><h3>Combining Multiple Rules</h3><p>Complex functions often require using multiple differentiation rules together:</p><ul><li><strong>Strategy 1:</strong> Identify which rule applies to the outermost operation</li><li><strong>Strategy 2:</strong> Work from outside to inside, applying rules as needed</li><li><strong>Strategy 3:</strong> Simplify algebraically when possible before differentiating</li></ul><p class='mt-3'>Common combinations: chain rule + power rule, product rule + chain rule, quotient rule + chain rule.</p></div>",
+            //     durationEstimate: 60,
+            // },
             visual: {
                 type: "visual",
                 content:
