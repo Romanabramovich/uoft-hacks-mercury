@@ -7,3 +7,5 @@ backend/app/__pycache__
 backend/generated_animations
 backend/media
 
+backend/app/env
+
