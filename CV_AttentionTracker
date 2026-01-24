@@ -3,6 +3,9 @@ from tkinter import ttk, font
 import threading
 import time
 import random
+import subprocess
+import sys
+import os
 from screen_tracker import ScreenTimeTracker
 
 class AdaptiveLearningApp:
@@ -23,12 +26,35 @@ class AdaptiveLearningApp:
         # --- UI Layout ---
         self.setup_ui()
         
-        # Start the Sensor in a background thread
+        # Start the tracker (begin capturing and analyzing)
+        self.tracker.start_tracking()
+        
+        # Start the webcam display in a separate process (avoids GUI threading conflicts)
+        self.start_webcam_process()
+        
+        # Start the Sensor in a background thread (headless mode - no GUI window)
         self.sensor_thread = threading.Thread(target=self.run_sensor_loop, daemon=True)
         self.sensor_thread.start()
 
-        # Start the Control Loop (The "AI" Brain)
-        self.root.after(1000, self.control_loop)
+        # Start the Control Loop (The "AI" Brain) - faster update rate
+        self.root.after(500, self.control_loop)
+
+    def start_webcam_process(self):
+        """Start the webcam display in a separate process."""
+        try:
+            # Get the Python executable path
+            python_exe = sys.executable
+            
+            # Start screen_tracker.py as a subprocess
+            self.webcam_process = subprocess.Popen([
+                python_exe, 
+                os.path.join(os.path.dirname(__file__), 'screen_tracker.py')
+            ])
+            
+            print("Webcam display process started")
+        except Exception as e:
+            print(f"Failed to start webcam process: {e}")
+            self.webcam_process = None
 
     def setup_ui(self):
         # Header
@@ -149,12 +175,31 @@ class AdaptiveLearningApp:
         self.log("ADAPTATION: Switched to Visual Mode")
 
     def run_sensor_loop(self):
-        """Run the OpenCV tracker in this background thread."""
-        # We start the tracker. Since tracker.run() is a blocking loop,
-        # we strictly shouldn't modify the GUI from here.
-        # The tracker implementation uses `cv2.imshow` which must form its own window loop.
-        # This is fine; the "Sensor" will pop up as its own window (The "Eye").
-        self.tracker.run()
+        """Run the OpenCV tracker in headless mode (no GUI window)."""
+        # Run in headless mode to avoid GUI threading conflicts on macOS
+        # The control loop will display the metrics in the tkinter UI
+        if not self.tracker.cap.isOpened():
+            print("Error: Could not open webcam")
+            return
+
+        print("Background sensor started (headless mode)...")
+        try:
+            while self.is_running and self.tracker.is_running:
+                ret, frame = self.tracker.cap.read()
+                if not ret:
+                    print("Error: Failed to capture frame")
+                    break
+
+                # Detect face
+                face_detected, faces = self.tracker.detect_face(frame)
+
+                # Update tracking metrics
+                self.tracker.update_tracking(face_detected)
+
+                # Small delay to control CPU usage (~30 FPS)
+                time.sleep(0.033)
+        finally:
+            self.tracker.cap.release()
 
     def control_loop(self):
         """The AI Brain. Polls sensor and decides on content."""
@@ -209,8 +254,16 @@ class AdaptiveLearningApp:
 
     def on_close(self):
         self.is_running = False
+        # Terminate the webcam subprocess
+        if hasattr(self, 'webcam_process') and self.webcam_process:
+            try:
+                self.webcam_process.terminate()
+                self.webcam_process.wait(timeout=2)
+                print("Webcam process terminated")
+            except subprocess.TimeoutExpired:
+                self.webcam_process.kill()
+                print("Webcam process force killed")
         # The tracker thread is daemon, so it will die when main dies
-        # But we should try to close 'q' or just kill the app
         self.root.destroy()
 
 if __name__ == "__main__":

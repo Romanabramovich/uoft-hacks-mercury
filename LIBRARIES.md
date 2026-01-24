@@ -3,6 +3,11 @@
 ## 📦 External Libraries (Install via Pip)
 These libraries must be installed for the project to run.
 
+**Installation Command:**
+```bash
+pip install opencv-python>=4.8.0 numpy>=1.24.0
+```
+
 | Library | Version Used | Purpose |
 | :--- | :--- | :--- |
 | **opencv-python** | `>=4.8.0` | Real-time computer vision, accessing the webcam, and face detection logic (Haar Cascades). |

@@ -1,0 +1,224 @@
+import cv2
+import time
+from datetime import datetime, timedelta
+import numpy as np
+import os
+
+
+class ScreenTimeTracker:
+    def __init__(self):
+        """Initialize the screen time tracker with face detection."""
+        # Load the pre-trained Haar Cascade for face detection
+        cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+        self.face_cascade = cv2.CascadeClassifier(cascade_path)
+
+        # Initialize webcam mechanism (but don't start reading yet)
+        self.cap = cv2.VideoCapture(0)
+        
+        # Tracking variables
+        self.session_start_time = time.time()
+        self.total_focus_time = 0.0
+        self.last_frame_time = time.time()
+        
+        # State variables
+        self.is_looking = False
+        self.is_running = False  # Changed: Default to paused
+        self.last_detection_time = None
+
+        # Configuration
+        self.min_face_size = (30, 30)
+
+    def start_tracking(self):
+        """Start or resume tracking."""
+        if not self.is_running:
+            self.is_running = True
+            self.session_start_time = time.time()
+            self.last_frame_time = time.time()
+            print("[CONTROL] Tracking Started")
+
+    def stop_tracking(self):
+        """Pause/Stop tracking."""
+        self.is_running = False
+        self.is_looking = False
+        print("[CONTROL] Tracking Stopped")
+
+    def detect_face(self, frame):
+        """Detect if a face is present in the frame."""
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        # Detect faces
+        faces = self.face_cascade.detectMultiScale(
+            gray,
+            scaleFactor=1.1,
+            minNeighbors=5,
+            minSize=self.min_face_size,
+            flags=cv2.CASCADE_SCALE_IMAGE
+        )
+
+        return len(faces) > 0, faces
+
+    def update_tracking(self, face_detected):
+        """Update tracking counters based on face detection."""
+        current_time = time.time()
+        dt = current_time - self.last_frame_time
+        self.last_frame_time = current_time
+
+        if face_detected:
+            self.total_focus_time += dt
+            self.is_looking = True
+            self.last_detection_time = current_time
+        else:
+            self.is_looking = False
+            
+    def get_attention_metrics(self):
+        """Calculate current session metrics."""
+        if not self.is_running:
+             return 0.0, 0.0, 0.0
+
+        current_time = time.time()
+        total_session_time = current_time - self.session_start_time
+        
+        if total_session_time < 0.1:
+            attention_span = 1.0
+        else:
+            attention_span = self.total_focus_time / total_session_time
+            
+        return total_session_time, self.total_focus_time, attention_span
+
+    def format_time(self, seconds):
+        """Format seconds into HH:MM:SS."""
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        secs = int(seconds % 60)
+        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+
+    def draw_overlay(self, frame, faces):
+        """Draw tracking information on the frame."""
+        height, width = frame.shape[:2]
+
+        # Draw rectangles around detected faces
+        for (x, y, w, h) in faces:
+            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 1)
+            cv2.putText(frame, "Face Detected", (x, y - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+
+        # Create semi-transparent overlay for stats
+        overlay = frame.copy()
+        cv2.rectangle(overlay, (10, 10), (400, 180), (0, 0, 0), -1)
+        cv2.addWeighted(overlay, 0.6, frame, 0.4, 0, frame)
+
+        # Get metrics
+        total_session, focus_time, attention_span = self.get_attention_metrics()
+
+        # Display statistics
+        status = "LOOKING" if self.is_looking else "NOT LOOKING"
+        status_color = (0, 255, 0) if self.is_looking else (0, 0, 255)
+
+        # Row 1: Status
+        cv2.putText(frame, f"Status: {status}", (20, 40),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, status_color, 2)
+        
+        # Row 2: Attention Span %
+        span_color = (0, 255, 0) if attention_span > 0.8 else (0, 255, 255) if attention_span > 0.5 else (0, 0, 255)
+        cv2.putText(frame, f"Attention Span: {attention_span*100:.1f}%", (20, 80),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, span_color, 2)
+
+        # Row 3: Focus Time
+        cv2.putText(frame, f"Focus Time: {self.format_time(focus_time)}", (20, 115),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1)
+
+        # Row 4: Total Session Time
+        cv2.putText(frame, f"Session Time: {self.format_time(total_session)}", (20, 145),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
+
+        # Instructions
+        cv2.putText(frame, "Press 'q' to quit, 'r' to reset", (10, height - 20),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
+
+        return frame
+
+    def reset_tracking(self):
+        """Reset all tracking data."""
+        self.session_start_time = time.time()
+        self.total_focus_time = 0.0
+        self.last_frame_time = time.time()
+        self.is_looking = False
+        print("\n[RESET] Tracking data cleared\n")
+
+    def print_summary(self):
+        """Print a summary of the tracking session."""
+        total_session, focus_time, attention_span = self.get_attention_metrics()
+        
+        print("\n" + "=" * 50)
+        print("SCREEN TIME TRACKING SUMMARY")
+        print("=" * 50)
+        print(f"Session Duration:     {self.format_time(total_session)}")
+        print(f"Total Focus Time:     {self.format_time(focus_time)}")
+        print(f"Average Attention:    {attention_span*100:.1f}%")
+        print("=" * 50 + "\n")
+
+    def run(self):
+        """Main tracking loop."""
+        if not self.cap.isOpened():
+            print("Error: Could not open webcam")
+            return
+
+        print("Screen Time Tracker Initialized (WAITING FOR START SIGNAL)...")
+        print("Press 'q' to quit")
+        print("-" * 50)
+
+        # Initialize timing
+        self.last_frame_time = time.time()
+        self.session_start_time = time.time()
+
+        try:
+            while True:
+                # [MODIFIED] Only process frames if running
+                if not self.is_running:
+                    time.sleep(0.1)
+                    # Use cv2.waitKey to catch 'q' even when paused
+                    if cv2.waitKey(100) & 0xFF == ord('q'):
+                        break
+                    continue
+
+                ret, frame = self.cap.read()
+
+                if not ret:
+                    print("Error: Failed to capture frame")
+                    break
+
+                # Detect face
+                face_detected, faces = self.detect_face(frame)
+
+                # Update tracking
+                self.update_tracking(face_detected)
+
+                # Draw overlay
+                frame = self.draw_overlay(frame, faces)
+
+                # Display the frame
+                cv2.imshow('Screen Time Tracker', frame)
+
+                # Handle key presses
+                key = cv2.waitKey(1) & 0xFF
+                if key == ord('q'):
+                    break
+                elif key == ord('r'):
+                    self.reset_tracking()
+
+        finally:
+            self.cap.release()
+            cv2.destroyAllWindows()
+            self.print_summary()
+
+
+def main():
+    """Main entry point."""
+    tracker = ScreenTimeTracker()
+    # Auto-start when running standalone
+    tracker.start_tracking()
+    tracker.run()
+
+
+if __name__ == "__main__":
+    main()
